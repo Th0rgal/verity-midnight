@@ -1,13 +1,19 @@
 #!/bin/bash
-# Inside the monitor container: resume one Cursor agent session that journals
+# Inside the monitor container: resume one agent session that journals
 # under /monitor (RW, not visible to the prover). Prover data is mounted read-only
-# at /prover and /prover-cursor.
+# at /prover and /prover-agent-home.
 set -euo pipefail
 
 INTERVAL_SECS="${MONITOR_INTERVAL_SECS:?}"
 MODEL="${MONITOR_MODEL:?}"
 PROVER_ROOT="${PROVER_ROOT_MOUNT:-/prover}"
-PROVER_CURSOR="${PROVER_CURSOR_MOUNT:-/prover-cursor}"
+BACKEND="${AGENT_BACKEND:-cursor}"
+PROVER_HOME="${PROVER_HOME_MOUNT:-/prover-agent-home}"
+case "$BACKEND" in
+  cursor) PROVER_TRANSCRIPTS="$PROVER_HOME/projects/" ;;
+  codex) PROVER_TRANSCRIPTS="$PROVER_HOME/prover-events.jsonl" ;;
+  *) echo "Unknown AGENT_BACKEND: $BACKEND" >&2; exit 2 ;;
+esac
 MONITOR_DIR="${MONITOR_DIR_MOUNT:-/monitor}"
 JOURNAL="$MONITOR_DIR/journal.md"
 STOP_FILE="$MONITOR_DIR/stop"
@@ -19,30 +25,30 @@ if [[ ! -f "$JOURNAL" ]]; then
 # Prover monitor journal
 
 Prover workspace (read-only): \`${PROVER_ROOT}\`
-Prover transcripts (read-only): \`${PROVER_CURSOR}/projects/\`
+Prover transcripts (read-only): \`${PROVER_TRANSCRIPTS}\`
 Monitor output (read-write): \`${MONITOR_DIR}\`
 Started (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 EOF
 fi
 
-INIT_PROMPT="You are a persistent progress monitor for another Cursor agent (the prover).
+INIT_PROMPT="You are a persistent progress monitor for another $BACKEND agent (the prover).
 
 Layout:
 - ${PROVER_ROOT}/ — prover run directory, READ-ONLY (Proof.lean, Lemmas, out/, README, AGENTS.md, …)
-- ${PROVER_CURSOR}/ — prover Cursor home, READ-ONLY (transcripts under projects/)
+- ${PROVER_TRANSCRIPTS} — prover transcripts, READ-ONLY (may not exist until the prover starts)
 - ${MONITOR_DIR}/ — YOUR workspace, READ-WRITE (journal + retrospective only)
 
 You are NOT the prover. Ignore ${PROVER_ROOT}/AGENTS.md and ${PROVER_ROOT}/README.md instructions that tell the prover to stop when lean-lsp MCP is unavailable — those apply only to the prover session.
 
 Rules:
-- NEVER write anywhere under ${PROVER_ROOT} or ${PROVER_CURSOR}. The filesystem is read-only there; do not try.
+- NEVER write anywhere under ${PROVER_ROOT} or ${PROVER_HOME}. The filesystem is read-only there; do not try.
 - Do NOT run ./check/check_proof.sh.
 - You MAY create/update files only under ${MONITOR_DIR}/.
-- lean-lsp MCP is intentionally unavailable in YOUR session. That is normal. Judge the prover's MCP health from transcripts under ${PROVER_CURSOR}/projects/ and from whether the prover is still editing ${PROVER_ROOT}/Midnight/Proof.lean.
+- lean-lsp MCP is intentionally unavailable in YOUR session. That is normal. Judge the prover's MCP health from ${PROVER_TRANSCRIPTS} and from whether the prover is still editing ${PROVER_ROOT}/Midnight/Proof.lean.
 
 On this first turn:
-1. Inspect ${PROVER_ROOT}/Midnight/Proof.lean, ${PROVER_ROOT}/Midnight/Lemmas/ (if any), ${PROVER_ROOT}/out/, and recent prover transcripts under ${PROVER_CURSOR}/projects/.
+1. Inspect ${PROVER_ROOT}/Midnight/Proof.lean, ${PROVER_ROOT}/Midnight/Lemmas/ (if any), ${PROVER_ROOT}/out/, and recent prover transcripts at ${PROVER_TRANSCRIPTS}.
 2. Append a dated section to ${JOURNAL} covering: proof progress (lines, sorry/admit/skip), latest prover tools/files, blockers, any packages/tools the prover downloaded or lacked, and any Verity/SolidityImport techniques it is rediscovering.
 3. Print a ≤10 line status summary to stdout.
 
@@ -62,7 +68,7 @@ RETRO_PROMPT="The prover agent has stopped. Produce a final evaluation.
 
 You are still the monitor (not the prover). Ignore prover AGENTS.md MCP-stop rules. Write only under ${MONITOR_DIR}/.
 
-Read ${JOURNAL}, the final ${PROVER_ROOT}/Midnight/Proof.lean (+ Lemmas if any), ${PROVER_ROOT}/out/, and prover transcripts under ${PROVER_CURSOR}/projects/.
+Read ${JOURNAL}, the final ${PROVER_ROOT}/Midnight/Proof.lean (+ Lemmas if any), ${PROVER_ROOT}/out/, and prover transcripts at ${PROVER_TRANSCRIPTS}.
 
 Write ${RETRO_FILE} with these sections:
 
@@ -78,13 +84,32 @@ Also print the full retrospective markdown to stdout."
 run_agent() {
   local prompt="$1"
   shift
-  agent -p --force --trust --sandbox disabled \
-    --model "$MODEL" \
-    --workspace "$MONITOR_DIR" \
-    --add-dir "$PROVER_ROOT" \
-    --add-dir "$PROVER_CURSOR" \
-    "$@" \
-    "$prompt"
+  if [[ "$BACKEND" == cursor ]]; then
+    agent -p --force --trust --sandbox disabled \
+      --model "$MODEL" \
+      --workspace "$MONITOR_DIR" \
+      --add-dir "$PROVER_ROOT" \
+      --add-dir "$PROVER_HOME" \
+      "$@" \
+      "$prompt"
+  else
+    # The monitor has its own Codex home and no Lean MCP configuration.
+    # Read access to prover mounts comes from Docker; --add-dir grants writes
+    # in Codex, so it is not needed for these read-only mounts.
+    if [[ "${1:-}" == --continue ]]; then
+      codex exec resume --last --skip-git-repo-check \
+        --dangerously-bypass-approvals-and-sandbox \
+        --model "$MODEL" \
+        -c "model_reasoning_effort=\"${MONITOR_REASONING_EFFORT:-high}\"" \
+        "$prompt"
+    else
+      codex exec --cd "$MONITOR_DIR" --skip-git-repo-check \
+        --dangerously-bypass-approvals-and-sandbox \
+        --model "$MODEL" \
+        -c "model_reasoning_effort=\"${MONITOR_REASONING_EFFORT:-high}\"" \
+        "$prompt"
+    fi
+  fi
 }
 
 sleep_or_stop() {
@@ -101,7 +126,7 @@ sleep_or_stop() {
   return 0
 }
 
-echo "[monitor] starting (interval=${INTERVAL_SECS}s model=${MODEL})"
+echo "[monitor] starting (backend=${BACKEND} interval=${INTERVAL_SECS}s model=${MODEL})"
 echo "[monitor] journal=${JOURNAL} prover=${PROVER_ROOT} (ro)"
 
 first=1
@@ -121,7 +146,7 @@ while true; do
   if [[ "$first" -eq 1 ]]; then
     run_agent "$INIT_PROMPT"
     status=$?
-    first=0
+    if [[ "$status" -eq 0 ]]; then first=0; fi
   else
     run_agent "$TICK_PROMPT" --continue
     status=$?

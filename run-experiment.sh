@@ -4,18 +4,22 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+source scripts/agent-backend.sh
+if [[ -z "${!AGENT_KEY_ENV:-}" ]]; then
+  echo "$AGENT_KEY_ENV must be set for AGENT_BACKEND=$AGENT_BACKEND" >&2
+  exit 2
+fi
 
 PLATFORM="${PLATFORM:-linux/amd64}"
 IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
-AGENT_MODEL="${AGENT_MODEL:-gpt-5.6-sol-high}"
-# Second Cursor agent that journals progress and writes a retrospective.
+# Second agent using the same backend, journaling progress and a retrospective.
 MONITOR="${MONITOR:-1}"
 MONITOR_MODEL="${MONITOR_MODEL:-$AGENT_MODEL}"
 MONITOR_INTERVAL="${MONITOR_INTERVAL:-2m}"
 # How long to wait for the monitor's final retrospective after the prover stops.
 MONITOR_RETRO_TIMEOUT="${MONITOR_RETRO_TIMEOUT:-20m}"
-RUN_ID="$(date +%Y%m%d-%H%M%S)"
+RUN_ID="$(date +%Y%m%d-%H%M%S)-$AGENT_BACKEND"
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
 # Monitor state is outside the prover workspace so the prover cannot see or
@@ -94,7 +98,6 @@ echo "Checking lean-lsp MCP on $RUN_DIR"
 set +e
 docker run --rm \
   --platform "$PLATFORM" \
-  -e CURSOR_API_KEY \
   -v "$RUN_DIR:/work" \
   -w /work \
   "$IMAGE" \
@@ -108,9 +111,12 @@ fi
 
 PROVER_NAME="midnight-prover-$RUN_ID"
 MONITOR_NAME="midnight-monitor-$RUN_ID"
-PROVER_CURSOR="$RUN_DIR/.prover-cursor"
-MONITOR_CURSOR="$MONITOR_DIR/.cursor"
-mkdir -p "$PROVER_CURSOR" "$MONITOR_DIR" "$MONITOR_CURSOR"
+PROVER_HOME="$RUN_DIR/.prover-$AGENT_BACKEND"
+MONITOR_HOME="$MONITOR_DIR/.$AGENT_BACKEND"
+mkdir -p "$PROVER_HOME" "$MONITOR_DIR" "$MONITOR_HOME"
+if [[ "$AGENT_BACKEND" == codex ]]; then
+  cp "$ROOT/scripts/codex-prover.toml" "$PROVER_HOME/config.toml"
+fi
 MONITOR_STARTED=0
 
 cleanup_agents() {
@@ -122,19 +128,19 @@ cleanup_agents() {
 }
 trap cleanup_agents EXIT
 
-echo "Starting prover agent on $RUN_DIR (model $AGENT_MODEL, timeout $AGENT_TIMEOUT)"
+echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $AGENT_TIMEOUT)"
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
-  -e CURSOR_API_KEY \
+  -e "$AGENT_KEY_ENV" \
+  -e AGENT_BACKEND="$AGENT_BACKEND" \
+  -e AGENT_MODEL="$AGENT_MODEL" \
+  -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
   -v "$RUN_DIR:/work" \
-  -v "$PROVER_CURSOR:/root/.cursor" \
+  -v "$PROVER_HOME:$AGENT_HOME_MOUNT" \
   -w /work \
   "$IMAGE" \
   timeout --signal=TERM --kill-after=30s "$AGENT_TIMEOUT" \
-  agent -p --force --trust --approve-mcps --sandbox disabled \
-  --model "$AGENT_MODEL" \
-  --workspace /work \
-  "Prove updatePositionViewProperties. Follow README.md and AGENTS.md. lean-lsp MCP is required — if it is unavailable, write out/mcp-unavailable with a reason and stop immediately (do not continue shell-only). Use lean_diagnostic_messages, lean_goal, lean_hover_info, lean_local_search. Stop when ./check/check_proof.sh exits 0." \
+  bash /opt/midnight/run-prover.sh \
   >/dev/null
 
 docker logs -f "$PROVER_NAME" 2>&1 | while IFS= read -r line; do printf '[prover] %s\n' "$line"; done &
@@ -146,20 +152,21 @@ if [[ "$MONITOR" != "0" ]]; then
   echo "Monitor media (RW): $MONITOR_DIR — prover workspace mounted read-only at /prover"
   docker run -d --name "$MONITOR_NAME" \
     --platform "$PLATFORM" \
-    -e CURSOR_API_KEY \
+    -e "$AGENT_KEY_ENV" \
+    -e AGENT_BACKEND="$AGENT_BACKEND" \
+    -e MONITOR_REASONING_EFFORT="$MONITOR_REASONING_EFFORT" \
     -e MONITOR_MODEL="$MONITOR_MODEL" \
     -e MONITOR_INTERVAL_SECS="$MONITOR_INTERVAL_SECS" \
     -e PROVER_ROOT_MOUNT=/prover \
-    -e PROVER_CURSOR_MOUNT=/prover-cursor \
+    -e PROVER_HOME_MOUNT=/prover-agent-home \
     -e MONITOR_DIR_MOUNT=/monitor \
     -v "$MONITOR_DIR:/monitor" \
     -v "$RUN_DIR:/prover:ro" \
-    -v "$PROVER_CURSOR:/prover-cursor:ro" \
-    -v "$MONITOR_CURSOR:/root/.cursor" \
-    -v "$ROOT/scripts/monitor-prover-loop.sh:/monitor-prover-loop.sh:ro" \
+    -v "$PROVER_HOME:/prover-agent-home:ro" \
+    -v "$MONITOR_HOME:$AGENT_HOME_MOUNT" \
     -w /monitor \
     "$IMAGE" \
-    bash /monitor-prover-loop.sh \
+    bash /opt/midnight/monitor-prover-loop.sh \
     >/dev/null
   MONITOR_STARTED=1
 
@@ -232,7 +239,7 @@ then
   mkdir -p "$RESULT_DIR"
   cp -a "$RUN_DIR/Midnight" "$RESULT_DIR/"
   cp -a "$RUN_DIR/out" "$RESULT_DIR/" 2>/dev/null || true
-  # Copy monitor artifacts only — skip .cursor (contains unix sockets cp can't copy).
+  # Copy monitor artifacts only, excluding backend session storage.
   if [[ -d "$MONITOR_DIR" ]]; then
     mkdir -p "$RESULT_DIR/monitor"
     for f in journal.md retrospective.md; do

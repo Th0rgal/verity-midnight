@@ -10,6 +10,8 @@ These do not replace `./check/check_proof.sh`.
 
 `scripts/lean-mcp.sh` launches pinned `lean-lsp-mcp` from `/opt/lean-mcp` (image)
 or `.lake/lean-mcp` (fallback). Cursor loads it from `.cursor/mcp.json`.
+For Codex, the host launcher writes `/root/.codex/config.toml` with the same
+launcher and `required = true`; the monitor has a separate home without MCP.
 
 ### If MCP is unavailable — stop immediately
 
@@ -40,6 +42,8 @@ does not expand `${workspaceFolder}`). In a fresh container:
 ```sh
 sh scripts/require-lean-mcp.sh
 agent --force --approve-mcps --workspace /work
+# Codex (AGENT_BACKEND=codex ./shell.sh <run-id>):
+codex --cd /work --dangerously-bypass-approvals-and-sandbox
 ```
 
 `--approve-mcps` auto-approves servers for that agent session; `mcp enable`

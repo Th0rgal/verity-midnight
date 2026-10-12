@@ -7,6 +7,7 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
+source scripts/agent-backend.sh
 
 PLATFORM="${PLATFORM:-linux/amd64}"
 IMAGE="${IMAGE:-midnight-agent}"
@@ -36,7 +37,11 @@ if [[ "$WORK_DIR" == "$PWD/runs/"* ]]; then
   echo "Mounting $WORK_DIR at /work (cache at /cache)."
   exec docker run --rm -it \
     --platform "$PLATFORM" \
-    -e CURSOR_API_KEY \
+    -e "$AGENT_KEY_ENV" \
+    -e AGENT_BACKEND="$AGENT_BACKEND" \
+    -e AGENT_MODEL="$AGENT_MODEL" \
+    -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
+    -v "$PWD/scripts/codex-prover.toml:/root/.codex/config.toml:ro" \
     -v "$WORK_DIR:/work" \
     -v "$PWD/cache:/cache" \
     -w /work \
@@ -47,7 +52,11 @@ fi
 echo "Mounting experiment/ at /work — avoid leaving .lake or edits in the template."
 exec docker run --rm -it \
   --platform "$PLATFORM" \
-  -e CURSOR_API_KEY \
+  -e "$AGENT_KEY_ENV" \
+  -e AGENT_BACKEND="$AGENT_BACKEND" \
+  -e AGENT_MODEL="$AGENT_MODEL" \
+  -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
+  -v "$PWD/scripts/codex-prover.toml:/root/.codex/config.toml:ro" \
   -v "$WORK_DIR:/work" \
   -w /work \
   "$IMAGE" \

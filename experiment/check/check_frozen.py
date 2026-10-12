@@ -29,7 +29,7 @@ EXPECTED = {
     'check/Goal.lean': 'fc36b125b4acb6ff3462efdefc745289609e7a50e6db644c4931f79c940383cc',
     'check/check_axioms.py': 'dc115caa2fea9e22d681e2943d4a4fa111d35753cc5863182e8ee92e2a5ac595',
     'check/check_proof.sh': 'ee10d3c4985b4f5b2bd5c626ce347efe8ad948347ce1a82a6a81b77944cc5fd0',
-    'README.md': '546a9d0eaf2afed748b4890c1757712791df6f9aed6b7dbd8cb0d9215f6874cc',
+    'README.md': 'ebd3cad4badf31f316a665685c03bcb8879d6abad6df86c7443cdd4d16355050',
     'vendor/midnight/.gitattributes': '8faa5cd20a6f243e56a1426736cae6f4fcc05ce0c3f95fa16b5bbb0f06d16182',
     'vendor/midnight/.github/workflows/certora.yml': 'a74ffb8fa0869b0929e9ebd62b4436de119a1e26564ea4d545037c18458209f8',
     'vendor/midnight/.github/workflows/forge-old.yml': '24dba7a0521f557e067b922580d05e6ec89d559aba5a14afa095e3fb851d5394',
