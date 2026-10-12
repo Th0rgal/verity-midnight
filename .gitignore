@@ -2,6 +2,7 @@ experiment/.lake/
 experiment/out/
 runs/
 monitor-logs/
+audit-logs/
 results/
 cache/
 .env

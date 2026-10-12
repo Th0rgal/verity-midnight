@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git python3 python3-venv ripgrep zstd \
+      ca-certificates curl git python3 python3-venv ripgrep tinyproxy zstd \
     && rm -rf /var/lib/apt/lists/*
 
 # Lean / Lake
@@ -35,6 +35,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
     && npm install -g "@openai/codex@${CODEX_VERSION}" \
     && codex --version
 
-COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh /opt/midnight/
+COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/egress/tinyproxy.conf /opt/midnight/
 
 WORKDIR /work

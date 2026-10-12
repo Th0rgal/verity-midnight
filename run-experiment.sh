@@ -19,6 +19,9 @@ MONITOR_MODEL="${MONITOR_MODEL:-$AGENT_MODEL}"
 MONITOR_INTERVAL="${MONITOR_INTERVAL:-2m}"
 # How long to wait for the monitor's final retrospective after the prover stops.
 MONITOR_RETRO_TIMEOUT="${MONITOR_RETRO_TIMEOUT:-20m}"
+# Route agent containers through an allowlisting proxy so they can reach the
+# model API but not GitHub or anywhere else a published proof could be found.
+EGRESS="${EGRESS:-1}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$AGENT_BACKEND"
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
@@ -26,6 +29,8 @@ RUN_DIR="$PWD/runs/$RUN_ID"
 # be affected by journal / retrospective writes.
 MONITOR_DIR="$PWD/monitor-logs/$RUN_ID"
 RESULT_DIR="$PWD/results/$RUN_ID"
+# Egress proxy log and transcript audit; outside the prover workspace.
+AUDIT_DIR="$PWD/audit-logs/$RUN_ID"
 CACHE_DIR="$PWD/cache"
 ROOT="$PWD"
 
@@ -39,7 +44,7 @@ parse_duration_secs() {
   esac
 }
 
-mkdir -p "$PWD/runs" "$PWD/results" "$PWD/monitor-logs" "$CACHE_DIR"
+mkdir -p "$PWD/runs" "$PWD/results" "$PWD/monitor-logs" "$PWD/audit-logs" "$CACHE_DIR"
 
 # Seed package cache from a leftover template .lake once, then drop it from experiment/.
 if [[ ! -d "$CACHE_DIR/packages" && -d "$TEMPLATE/.lake/packages" ]]; then
@@ -111,6 +116,63 @@ fi
 
 PROVER_NAME="midnight-prover-$RUN_ID"
 MONITOR_NAME="midnight-monitor-$RUN_ID"
+PROXY_NAME="midnight-egress-$RUN_ID"
+EGRESS_NET="midnight-egress-$RUN_ID"
+mkdir -p "$AUDIT_DIR"
+
+cleanup_egress() {
+  docker rm -f "$PROXY_NAME" >/dev/null 2>&1 || true
+  docker network rm "$EGRESS_NET" >/dev/null 2>&1 || true
+}
+
+# Docker arguments that put an agent container behind the egress proxy.
+# Kept as a string because empty arrays break `set -u` on macOS bash 3.2.
+AGENT_NET_ARGS=""
+if [[ "$EGRESS" != "0" ]]; then
+  echo "Starting egress proxy (allowing: $EGRESS_ALLOW)"
+  # tinyproxy runs as nobody and must be able to write its log here.
+  chmod 777 "$AUDIT_DIR"
+  tr ' ' '\n' <<<"$EGRESS_ALLOW" | sed '/^$/d' >"$AUDIT_DIR/allow"
+  # --internal: containers on this network have no route out except the proxy,
+  # which is also attached to the default bridge.
+  docker network create --internal "$EGRESS_NET" >/dev/null
+  docker run -d --name "$PROXY_NAME" \
+    --platform "$PLATFORM" \
+    -v "$AUDIT_DIR:/egress" \
+    "$IMAGE" \
+    tinyproxy -d -c /opt/midnight/tinyproxy.conf \
+    >/dev/null
+  docker network connect --alias egress-proxy "$EGRESS_NET" "$PROXY_NAME"
+  PROXY_URL=http://egress-proxy:8888
+  AGENT_NET_ARGS="--network $EGRESS_NET \
+    -e HTTPS_PROXY=$PROXY_URL -e https_proxy=$PROXY_URL \
+    -e HTTP_PROXY=$PROXY_URL -e http_proxy=$PROXY_URL \
+    -e NO_PROXY=localhost,127.0.0.1 -e no_proxy=localhost,127.0.0.1 \
+    -e NODE_USE_ENV_PROXY=1"
+
+  # Fail closed: refuse to start the agent if GitHub is reachable either
+  # through the proxy or directly.
+  set +e
+  # shellcheck disable=SC2086
+  docker run --rm --platform "$PLATFORM" $AGENT_NET_ARGS "$IMAGE" bash -c '
+    sleep 1
+    if curl -sS -o /dev/null --max-time 15 https://github.com/ 2>/dev/null; then
+      echo "github.com is reachable through the egress proxy" >&2; exit 1
+    fi
+    if curl -sS -o /dev/null --max-time 15 --noproxy "*" https://github.com/ 2>/dev/null; then
+      echo "github.com is reachable without the proxy" >&2; exit 1
+    fi
+  '
+  EGRESS_STATUS=$?
+  set -e
+  if [[ "$EGRESS_STATUS" -ne 0 ]]; then
+    echo "Egress preflight failed — agent not started (run kept at $RUN_DIR)"
+    cleanup_egress
+    exit 2
+  fi
+else
+  echo "WARNING: EGRESS=0 — agents have unrestricted network access, including to published proofs"
+fi
 PROVER_HOME="$RUN_DIR/.prover-$AGENT_BACKEND"
 MONITOR_HOME="$MONITOR_DIR/.$AGENT_BACKEND"
 mkdir -p "$PROVER_HOME" "$MONITOR_DIR" "$MONITOR_HOME"
@@ -125,12 +187,15 @@ cleanup_agents() {
   docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
   if [[ -n "${PROVER_LOGS_PID:-}" ]]; then kill "$PROVER_LOGS_PID" >/dev/null 2>&1 || true; fi
   if [[ -n "${MONITOR_LOGS_PID:-}" ]]; then kill "$MONITOR_LOGS_PID" >/dev/null 2>&1 || true; fi
+  cleanup_egress
 }
 trap cleanup_agents EXIT
 
 echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $AGENT_TIMEOUT)"
+# shellcheck disable=SC2086
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
+  $AGENT_NET_ARGS \
   -e "$AGENT_KEY_ENV" \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
@@ -150,8 +215,10 @@ if [[ "$MONITOR" != "0" ]]; then
   MONITOR_INTERVAL_SECS="$(parse_duration_secs "$MONITOR_INTERVAL")"
   echo "Starting monitor agent (model $MONITOR_MODEL, every $MONITOR_INTERVAL → ${MONITOR_INTERVAL_SECS}s)"
   echo "Monitor media (RW): $MONITOR_DIR — prover workspace mounted read-only at /prover"
+  # shellcheck disable=SC2086
   docker run -d --name "$MONITOR_NAME" \
     --platform "$PLATFORM" \
+    $AGENT_NET_ARGS \
     -e "$AGENT_KEY_ENV" \
     -e AGENT_BACKEND="$AGENT_BACKEND" \
     -e MONITOR_REASONING_EFFORT="$MONITOR_REASONING_EFFORT" \
@@ -205,7 +272,18 @@ if [[ -n "${MONITOR_LOGS_PID:-}" ]]; then kill "$MONITOR_LOGS_PID" >/dev/null 2>
 if [[ -n "${PROVER_LOGS_PID:-}" ]]; then kill "$PROVER_LOGS_PID" >/dev/null 2>&1 || true; fi
 docker rm -f "$MONITOR_NAME" >/dev/null 2>&1 || true
 docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
+cleanup_egress
 trap - EXIT
+
+echo "Auditing prover transcripts"
+AUDIT_ARGS=(--backend "$AGENT_BACKEND" --prover-home "$PROVER_HOME" --out "$AUDIT_DIR/audit.md")
+if [[ "$EGRESS" != "0" ]]; then
+  AUDIT_ARGS+=(--proxy-log "$AUDIT_DIR/tinyproxy.log")
+fi
+set +e
+python3 scripts/audit_transcripts.py "${AUDIT_ARGS[@]}"
+AUDIT_STATUS=$?
+set -e
 
 if [[ -f "$MONITOR_DIR/retrospective.md" ]]; then
   echo "======== monitor retrospective ========"
@@ -228,9 +306,16 @@ elif [[ "$AGENT_STATUS" -ne 0 ]]; then
   exit "$AGENT_STATUS"
 fi
 
+if [[ "$AUDIT_STATUS" -ne 0 ]]; then
+  echo "Audit flagged a possible answer lookup — proof not checked or extracted."
+  echo "Review $AUDIT_DIR/audit.md (run kept at $RUN_DIR)"
+  exit 92
+fi
+
 echo "Checking proof"
 if docker run --rm \
   --platform "$PLATFORM" \
+  --network none \
   -v "$RUN_DIR:/work" \
   -w /work \
   "$IMAGE" \
@@ -249,6 +334,7 @@ then
     done
   fi
 
+  cp "$AUDIT_DIR/audit.md" "$RESULT_DIR/"
   printf '%s\n' "$RUN_ID" > "$RESULT_DIR/RUN_ID"
   echo "SUCCESS — proof saved to $RESULT_DIR"
   echo "Run directory kept at $RUN_DIR"

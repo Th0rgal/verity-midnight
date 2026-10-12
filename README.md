@@ -8,6 +8,12 @@ Each invocation is an isolated trial: the agent gets a fresh copy of the task
 template and cannot see proofs from earlier runs. A successful proof is copied
 to `results/`.
 
+Proofs of this theorem are published on GitHub, and Verity's own docs point to
+them. So agents also run without general internet access: an egress proxy lets
+them reach only the model API, hosted web search is turned off where the
+backend allows it, and their transcripts are audited after each run (see
+[Answer isolation](#answer-isolation)).
+
 ## Prerequisites
 
 - Docker (on Apple Silicon, the image builds as `linux/amd64`)
@@ -45,11 +51,15 @@ What the script does:
 2. Build the `midnight-agent` image (Lean 4.31, elan, Cursor `agent`, Codex, Python)
 3. Inside Docker: `lake update`, install pinned linux `solc`,
    `lake build Midnight.Import` (`lean-lsp-mcp` is already in the image)
-4. Run the selected agent on that run directory (default timeout **120m**), with
+4. Start the egress proxy and check that GitHub is unreachable from the agent
+   network (skipped with `EGRESS=0`)
+5. Run the selected agent on that run directory (default timeout **120m**), with
    Lean MCP configured through `.cursor/mcp.json` for Cursor or an isolated
    Codex home with `config.toml` and `required = true` for Codex
-5. Run `./check/check_proof.sh` in Docker
-6. On success, copy `Midnight/` (and `out/` if present) to `results/<timestamp>/`
+6. Audit the prover transcripts (`scripts/audit_transcripts.py`)
+7. Run `./check/check_proof.sh` in Docker with no network
+8. On success, copy `Midnight/` (and `out/` if present) and the audit report to
+   `results/<timestamp>/`
 
 `lean-lsp-mcp` is installed at `/opt/lean-mcp` in the Dockerfile (pins from
 `experiment/scripts/lean-mcp-requirements.txt`). Helpers match
@@ -70,6 +80,8 @@ What the script does:
 | `MONITOR_MODEL` | `$AGENT_MODEL` | Model for the monitor / retrospective agent |
 | `MONITOR_INTERVAL` | `2m` | How often the monitor journals (`30s` / `2m` / `1h`) |
 | `MONITOR_RETRO_TIMEOUT` | `20m` | Max wait after the prover stops for the retrospective |
+| `EGRESS` | `1` | Set `0` to give agents unrestricted network access (the audit then fails any network command) |
+| `EGRESS_ALLOW_EXTRA` | (empty) | Extra hosts the agents may reach, as space-separated extended regexes on the host name |
 | `PLATFORM` | `linux/amd64` | Docker platform |
 | `IMAGE` | `midnight-agent` | Image name |
 
@@ -108,7 +120,9 @@ PLATFORM=linux/amd64 AGENT_TIMEOUT=2h ./run-experiment.sh
 | `0` | Proof accepted; copied to `results/<id>/` |
 | `1` | Agent finished but `./check/check_proof.sh` failed |
 | `2` | Invalid backend/settings, missing API key, or lean-lsp MCP preflight failure (agent not started) |
+| `2` | Also: egress preflight found GitHub reachable from the agent network |
 | `91` | Agent wrote `out/mcp-unavailable` (MCP required; see `AGENTS.md`) |
+| `92` | Transcript audit flagged a possible answer lookup; proof not checked |
 | `124` | Agent hit `AGENT_TIMEOUT` |
 
 Non-zero failures keep the run directory for inspection. Proofs are only written
@@ -121,6 +135,7 @@ under `results/` when the checker passes.
 | `experiment/` | Immutable task template (stub `Proof.lean`, frozen Import/Spec/check/vendor); `check_frozen.py --start` pins the stub before each trial |
 | `runs/<id>/` | Prover trial workspace (gitignored) |
 | `monitor-logs/<id>/` | Monitor journal / retrospective (RW for monitor only; gitignored) |
+| `audit-logs/<id>/` | Egress allowlist, proxy log and transcript audit report (gitignored) |
 | `results/<id>/` | Extracted proof after a passing check (gitignored) |
 | `cache/` | Warm Lake packages + linux `solc` between runs (gitignored) |
 | `Dockerfile` | Toolchain image |
@@ -129,6 +144,34 @@ under `results/` when the checker passes.
 Task rules for the agent (what may be edited, acceptance criteria) are in
 [`experiment/README.md`](experiment/README.md). MCP usage notes are in
 [`experiment/AGENTS.md`](experiment/AGENTS.md).
+
+## Answer isolation
+
+Three layers keep the prover from finding a published proof instead of
+writing one:
+
+1. **Egress allowlist.** Prover and monitor containers run on an internal
+   Docker network. Their only route out is a tinyproxy container that forwards
+   to the hosts in `EGRESS_ALLOW_DEFAULT` (`scripts/agent-backend.sh`) plus
+   `EGRESS_ALLOW_EXTRA`, so `git`, `curl` and Lake cannot reach GitHub. The
+   run refuses to start the agent if `github.com` answers from that network.
+   The Cursor defaults are a best guess at its API hosts: if the Cursor agent
+   cannot connect, look for refused hosts in `audit-logs/<id>/tinyproxy.log`
+   and add them with `EGRESS_ALLOW_EXTRA`.
+2. **No hosted web tools.** Web search runs on the model provider's side, so
+   the proxy cannot stop it. Codex runs with `web_search = "disabled"`.
+   Cursor's `experiment/.cursor/cli.json` denies `WebFetch`; the Cursor CLI has
+   no documented switch for web search, so layer 3 covers it.
+3. **Transcript audit.** After the prover stops, `scripts/audit_transcripts.py`
+   writes `audit-logs/<id>/audit.md`. Any web search or web fetch tool call
+   fails the run with exit code `92`, as does any network command when
+   `EGRESS=0`. Hosts refused by the proxy and mentions of the published proof
+   repository are listed for review only: the agent CLIs contact GitHub on
+   their own, and Verity's docs name the repository.
+
+The checker container runs with `--network none`. Lake dependencies and `solc`
+are fetched in the warm-up container before the agent starts, which keeps its
+normal network access. `./shell.sh` is not isolated.
 
 ## Interactive shell
 

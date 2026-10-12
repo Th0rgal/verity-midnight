@@ -101,12 +101,14 @@ run_agent() {
         --dangerously-bypass-approvals-and-sandbox \
         --model "$MODEL" \
         -c "model_reasoning_effort=\"${MONITOR_REASONING_EFFORT:-high}\"" \
+        -c 'web_search="disabled"' \
         "$prompt"
     else
       codex exec --cd "$MONITOR_DIR" --skip-git-repo-check \
         --dangerously-bypass-approvals-and-sandbox \
         --model "$MODEL" \
         -c "model_reasoning_effort=\"${MONITOR_REASONING_EFFORT:-high}\"" \
+        -c 'web_search="disabled"' \
         "$prompt"
     fi
   fi
