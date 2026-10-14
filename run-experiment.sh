@@ -5,7 +5,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 source scripts/agent-backend.sh
-if [[ -z "${!AGENT_KEY_ENV:-}" ]]; then
+if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
+  python3 scripts/codex-auth.py "$CODEX_AUTH_FILE"
+elif [[ -z "${!AGENT_KEY_ENV:-}" ]]; then
   echo "$AGENT_KEY_ENV must be set for AGENT_BACKEND=$AGENT_BACKEND" >&2
   exit 2
 fi
@@ -13,6 +15,11 @@ fi
 PLATFORM="${PLATFORM:-linux/amd64}"
 IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
+EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
+case "$EXPERIMENT_TASK" in
+  update-position-view|wexp) ;;
+  *) echo "Unknown EXPERIMENT_TASK: $EXPERIMENT_TASK" >&2; exit 2 ;;
+esac
 # Second agent using the same backend, journaling progress and a retrospective.
 MONITOR="${MONITOR:-1}"
 MONITOR_MODEL="${MONITOR_MODEL:-$AGENT_MODEL}"
@@ -23,6 +30,9 @@ MONITOR_RETRO_TIMEOUT="${MONITOR_RETRO_TIMEOUT:-20m}"
 # model API but not GitHub or anywhere else a published proof could be found.
 EGRESS="${EGRESS:-1}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$AGENT_BACKEND"
+if [[ "$EXPERIMENT_TASK" != update-position-view ]]; then
+  RUN_ID="$RUN_ID-$EXPERIMENT_TASK"
+fi
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
 # Monitor state is outside the prover workspace so the prover cannot see or
@@ -65,6 +75,10 @@ mkdir -p "$RUN_DIR"
 # No .lake / out from the template — each trial starts from the stub proof only.
 cp -a "$TEMPLATE/." "$RUN_DIR/"
 rm -rf "$RUN_DIR/.lake" "$RUN_DIR/out"
+if [[ "$EXPERIMENT_TASK" == wexp ]]; then
+  python3 scripts/prepare-wexp-task.py "$RUN_DIR"
+  python3 "$RUN_DIR/check/check_frozen.py" --start
+fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
 
@@ -73,6 +87,7 @@ docker run --rm \
   --platform "$PLATFORM" \
   -v "$RUN_DIR:/work" \
   -v "$CACHE_DIR:/cache" \
+  -e EXPERIMENT_TASK="$EXPERIMENT_TASK" \
   -w /work \
   "$IMAGE" \
   bash -lc '
@@ -96,7 +111,11 @@ docker run --rm \
     cp -a .lake/packages /cache/packages
     mkdir -p /cache/solidity-import
     cp -a .lake/solidity-import/solc-0.8.34 /cache/solidity-import/solc-0.8.34
-    lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs
+    if [[ "$EXPERIMENT_TASK" == wexp ]]; then
+      lake build Midnight.TickLibSpec
+    else
+      lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs
+    fi
   '
 
 echo "Checking lean-lsp MCP on $RUN_DIR"
@@ -178,6 +197,9 @@ MONITOR_HOME="$MONITOR_DIR/.$AGENT_BACKEND"
 mkdir -p "$PROVER_HOME" "$MONITOR_DIR" "$MONITOR_HOME"
 if [[ "$AGENT_BACKEND" == codex ]]; then
   cp "$ROOT/scripts/codex-prover.toml" "$PROVER_HOME/config.toml"
+  if [[ "$CODEX_AUTH" == chatgpt ]]; then
+    python3 scripts/codex-auth.py "$CODEX_AUTH_FILE" "$PROVER_HOME" "$MONITOR_HOME"
+  fi
 fi
 MONITOR_STARTED=0
 
@@ -196,7 +218,7 @@ echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $A
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
   $AGENT_NET_ARGS \
-  -e "$AGENT_KEY_ENV" \
+  $AGENT_AUTH_ARGS \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
   -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
@@ -219,7 +241,7 @@ if [[ "$MONITOR" != "0" ]]; then
   docker run -d --name "$MONITOR_NAME" \
     --platform "$PLATFORM" \
     $AGENT_NET_ARGS \
-    -e "$AGENT_KEY_ENV" \
+    $AGENT_AUTH_ARGS \
     -e AGENT_BACKEND="$AGENT_BACKEND" \
     -e MONITOR_REASONING_EFFORT="$MONITOR_REASONING_EFFORT" \
     -e MONITOR_MODEL="$MONITOR_MODEL" \

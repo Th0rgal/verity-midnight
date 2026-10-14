@@ -18,7 +18,8 @@ backend allows it, and their transcripts are audited after each run (see
 
 - Docker (on Apple Silicon, the image builds as `linux/amd64`)
 - An API key for your chosen backend: `CURSOR_API_KEY` for Cursor (default),
-  or `CODEX_API_KEY` for Codex (an OpenAI Platform API key)
+  or `CODEX_API_KEY` for Codex (an OpenAI Platform API key). Codex can also
+  use an existing ChatGPT sign-in with `CODEX_AUTH=chatgpt`.
 - Git submodules initialized (Midnight Solidity sources):
 
 ```sh
@@ -39,8 +40,32 @@ export CODEX_API_KEY=…
 AGENT_BACKEND=codex ./run-experiment.sh
 ```
 
+To run the `wExp` monotonicity task using its manual Lean model:
+
+```sh
+EXPERIMENT_TASK=wexp AGENT_BACKEND=codex AGENT_MODEL=gpt-6.1-sol ./run-experiment.sh
+```
+
+This selects `Midnight.Spec.wExpIsMonotonic` in a fresh run and freezes
+`Midnight/TickLibSpec.lean`. The original proof task remains the default.
+
+To use your ChatGPT subscription instead of API credits, sign in on the host:
+
+```sh
+codex login
+codex login status
+CODEX_AUTH=chatgpt EXPERIMENT_TASK=wexp AGENT_BACKEND=codex AGENT_MODEL=gpt-6.1-sol MONITOR_INTERVAL=1m ./run-experiment.sh
+```
+
+The runner copies the login cache from `${CODEX_HOME:-$HOME/.codex}/auth.json`
+into each agent's isolated home and forwards no API key in this mode.
+Use `CODEX_AUTH_FILE` to select a different cache file. If the CLI uses the
+OS keychain, use `codex -c cli_auth_credentials_store='"file"' login`
+to create a file-based login cache. ChatGPT plan usage limits still apply.
+This follows the [official Docker authentication workflow](https://learn.chatgpt.com/docs/auth#fallback-authenticate-locally-and-copy-your-auth-cache).
+
 Switch back with `AGENT_BACKEND=cursor ./run-experiment.sh`. Both prover and
-monitor use the selected backend. Keys must be exported in your shell; the
+monitor use the selected backend. In API-key mode, export the key in your shell; the
 scripts do not load `.env` automatically. Only the selected backend's key is
 passed to agent containers; dependency setup, MCP preflight, and checker
 containers receive no key. Keys are never baked into the image.
@@ -71,7 +96,9 @@ What the script does:
 |----------|---------|---------|
 | `AGENT_BACKEND` | `cursor` | `cursor` or `codex`; applies to prover and monitor |
 | `CURSOR_API_KEY` | (required for Cursor) | Cursor agent authentication |
-| `CODEX_API_KEY` | (required for Codex) | OpenAI Platform API key; read directly by `codex exec` |
+| `CODEX_API_KEY` | (required for Codex API-key mode) | OpenAI Platform API key; read directly by `codex exec` |
+| `CODEX_AUTH` | `api-key` | Codex authentication: `api-key` or `chatgpt` |
+| `CODEX_AUTH_FILE` | `${CODEX_HOME:-$HOME/.codex}/auth.json` | Host ChatGPT login cache copied into isolated agent homes |
 | `AGENT_MODEL` | Cursor: `gpt-5.6-sol-high`; Codex: `gpt-5.6-sol` | Model ID for the selected backend; Cursor aliases are not OpenAI API model IDs |
 | `AGENT_REASONING_EFFORT` | `high` | Codex reasoning effort, separate from model ID; ignored by Cursor |
 | `MONITOR_REASONING_EFFORT` | `$AGENT_REASONING_EFFORT` | Codex monitor reasoning effort |

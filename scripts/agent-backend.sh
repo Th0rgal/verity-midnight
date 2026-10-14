@@ -13,6 +13,12 @@ case "$AGENT_BACKEND" in
     AGENT_KEY_ENV=CODEX_API_KEY
     AGENT_HOME_MOUNT=/root/.codex
     AGENT_MODEL="${AGENT_MODEL:-gpt-6.1-sol}"
+    CODEX_AUTH="${CODEX_AUTH:-api-key}"
+    case "$CODEX_AUTH" in
+      api-key|chatgpt) ;;
+      *) echo "Invalid CODEX_AUTH: $CODEX_AUTH (expected api-key or chatgpt)" >&2; exit 2 ;;
+    esac
+    CODEX_AUTH_FILE="${CODEX_AUTH_FILE:-${CODEX_HOME:-$HOME/.codex}/auth.json}"
     # API key (api.openai.com) and ChatGPT sign-in (chatgpt.com, auth.openai.com).
     EGRESS_ALLOW_DEFAULT='^api\.openai\.com$ ^chatgpt\.com$ ^auth\.openai\.com$'
     ;;
@@ -21,6 +27,11 @@ case "$AGENT_BACKEND" in
     exit 2
     ;;
 esac
+# Only API-key mode forwards a key. ChatGPT mode uses the cached login instead.
+AGENT_AUTH_ARGS="-e $AGENT_KEY_ENV"
+if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
+  AGENT_AUTH_ARGS=""
+fi
 # Space-separated extended regexes (matched on the host name) for the hosts
 # agent containers may reach through the egress proxy.
 EGRESS_ALLOW="$EGRESS_ALLOW_DEFAULT ${EGRESS_ALLOW_EXTRA:-}"
