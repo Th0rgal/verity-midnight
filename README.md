@@ -137,6 +137,29 @@ What the script does:
 8. On success, copy `Midnight/` (and `out/` if present) and the audit report to
    `results/<timestamp>/`
 
+## Proof aids for imported models
+
+Agents get help with the memory-heavy parts of reasoning about
+`solidity_import` models:
+
+- `experiment/SOLIDITY_IMPORT.md`: how to run an imported body symbolically
+  without exhausting memory. `AGENTS.md` and the task READMEs point to it.
+- `experiment/ProofKit/`: generic step lemmas and a `run_exec` tactic for the
+  `Denote` interpreter (`import ProofKit`), prebuilt during warm-up. It
+  contains nothing specific to a task.
+- Every Lean process in the image runs with `-M $LEAN_MEMORY_MB`, so a runaway
+  proof fails with `excessive memory consumption detected` instead of an OOM
+  kill. The toolchain's `lean` is a wrapper (`scripts/lean-memory-cap.sh`), and
+  the language server passes the cap on to its workers.
+- `leanrun` (`scripts/leanrun`, on `PATH`) runs one Lean command and reports
+  exit status, peak memory and wall time.
+- `experiment/scripts/lean-mcp.sh` limits lean-lsp-mcp to two open files and
+  elaborates `Midnight/Proof.lean` at startup, so the symbol index is ready
+  before the first search.
+
+These files are frozen like the task files. Runs before they were added had
+none of them, so compare results across that change with care.
+
 `lean-lsp-mcp` is installed at `/opt/lean-mcp` in the Dockerfile (pins from
 `experiment/scripts/lean-mcp-requirements.txt`). Helpers match
 [morpho-midnight-verity `cursor/proof-sandbox`](https://github.com/lfglabs-dev/morpho-midnight-verity/tree/cursor/proof-sandbox).
@@ -158,6 +181,7 @@ What the script does:
 | `AGENT_REASONING_EFFORT` | `high` | Codex or Claude reasoning effort, separate from model ID; ignored by Cursor |
 | `MONITOR_REASONING_EFFORT` | `$AGENT_REASONING_EFFORT` | Codex or Claude monitor reasoning effort |
 | `AGENT_TIMEOUT` | `120m` | Cap on the prover agent step only (`timeout(1)` inside the container) |
+| `LEAN_MEMORY_MB` | `6144` | Per-process Lean memory cap (`lean -M`) in the prover container; `0` disables it. Warm-up and the final checker run uncapped |
 | `MONITOR` | `1` | Set `0` to disable the sidecar progress agent |
 | `MONITOR_MODEL` | `$AGENT_MODEL` | Model for the monitor / retrospective agent |
 | `MONITOR_INTERVAL` | `2m` | How often the monitor journals (`30s` / `2m` / `1h`) |

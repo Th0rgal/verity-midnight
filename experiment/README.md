@@ -13,6 +13,7 @@ Produce a proof that `./check/check_proof.sh` accepts.
 
 - `Midnight/Import.lean`, `Midnight/Spec.lean`, `Midnight.lean`
 - `lakefile.lean`, `lake-manifest.json`, `lean-toolchain`
+- `SOLIDITY_IMPORT.md`, `ProofKit.lean`, `ProofKit/`
 - `vendor/`
 - `check/`
 
@@ -33,6 +34,9 @@ so each agent begins from the known stub; the post-proof check allows it to chan
 ## Hint
 
 A successful call does not underflow the final checked subtractions, so `newCredit + fee` is the post-slash credit and `newPendingFee + fee` is at most the old pending fee. `lastLossFactor ≤ lossFactor` means slashing multiplies credit by at most one.
+
+Read `SOLIDITY_IMPORT.md` for how to reason about the imported model without
+exhausting memory; `import ProofKit` provides step lemmas for it.
 
 Import `Compiler.SolidityImport.Proofs` (and `Compiler.SolidityImport.Access`):
   - functionBody <model>.model "<function>" gets the list of statements in the <function>

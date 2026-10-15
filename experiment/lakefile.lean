@@ -18,6 +18,10 @@ input_dir positiveTickSol where
   filter := .extension "sol"
   text := true
 
+/-- Generic lemmas for symbolic execution of `solidity_import` models. -/
+lean_lib «ProofKit» where
+  globs := #[.andSubmodules `ProofKit]
+
 @[default_target]
 lean_lib «Midnight» where
   globs := #[.andSubmodules `Midnight]

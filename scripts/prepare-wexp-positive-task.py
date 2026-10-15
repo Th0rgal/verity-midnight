@@ -55,6 +55,10 @@ uses checked unsigned arithmetic, a sign/magnitude residual, and a bounded
 power-of-two helper. The intended range is 0 through 16817989975223754156.
 No equivalence proof to the original signed Solidity library is required.
 
+Read `SOLIDITY_IMPORT.md` before your first proof attempt: it explains how to
+run the imported body symbolically without exhausting memory, and the prebuilt
+`ProofKit` lemmas (`import ProofKit`) that do it.
+
 Produce proofs that `./check/check_proof.sh` accepts.
 
 ## What you may edit
@@ -66,7 +70,8 @@ Produce proofs that `./check/check_proof.sh` accepts.
 
 - Existing files under `Midnight/` other than `Midnight/Proof.lean`
 - `Midnight.lean`, `lakefile.lean`, `lake-manifest.json`, `lean-toolchain`
-- `README.md`, `AGENTS.md`, `vendor/`, `solidity/`, `check/`
+- `README.md`, `AGENTS.md`, `SOLIDITY_IMPORT.md`, `ProofKit/`, `vendor/`,
+  `solidity/`, `check/`
 
 The Solidity implementation, import and specification are frozen. Do not
 replace the imported model or weaken either statement or its input range.

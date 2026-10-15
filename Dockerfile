@@ -43,4 +43,16 @@ RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh \
 
 COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/claude-common.sh scripts/claude-prover.json scripts/egress/tinyproxy.conf /opt/midnight/
 
+# Cap each Lean process's memory (LEAN_MEMORY_MB, default 6144) so runaway
+# proofs fail with a Lean error instead of an OOM kill; `leanrun` reports
+# exit status, peak memory and time for one Lean command.
+COPY scripts/lean-memory-cap.sh scripts/leanrun /tmp/lean-tools/
+RUN set -eux; \
+    bin="/root/.elan/toolchains/leanprover--lean4---v4.31.0/bin"; \
+    mv "$bin/lean" "$bin/lean-real"; \
+    install -m 755 /tmp/lean-tools/lean-memory-cap.sh "$bin/lean"; \
+    install -m 755 /tmp/lean-tools/leanrun /usr/local/bin/leanrun; \
+    rm -r /tmp/lean-tools; \
+    lean --version
+
 WORKDIR /work

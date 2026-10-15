@@ -17,6 +17,9 @@ fi
 PLATFORM="${PLATFORM:-linux/amd64}"
 IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
+# Per-process memory cap (MB) for Lean in the prover container; 0 disables it.
+# Warm-up and the final checker run without the cap.
+LEAN_MEMORY_MB="${LEAN_MEMORY_MB:-6144}"
 EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
 case "$EXPERIMENT_TASK" in
   update-position-view|wexp|wexp-positive) ;;
@@ -93,6 +96,7 @@ docker run --rm \
   -v "$RUN_DIR:/work" \
   -v "$CACHE_DIR:/cache" \
   -e EXPERIMENT_TASK="$EXPERIMENT_TASK" \
+  -e LEAN_MEMORY_MB=0 \
   -w /work \
   "$IMAGE" \
   bash -lc '
@@ -119,10 +123,10 @@ docker run --rm \
     if [[ "$EXPERIMENT_TASK" == wexp ]]; then
       lake build Midnight.TickLibSpec
     elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
-      lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs
+      lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs ProofKit
       lake env lean check/TickLibPositiveSmoke.lean
     else
-      lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs
+      lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs ProofKit
     fi
   '
 
@@ -232,6 +236,7 @@ docker run -d --name "$PROVER_NAME" \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
   -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
+  -e LEAN_MEMORY_MB="$LEAN_MEMORY_MB" \
   -v "$RUN_DIR:/work" \
   -v "$PROVER_HOME:$AGENT_HOME_MOUNT" \
   -w /work \
@@ -348,6 +353,7 @@ echo "Checking proof"
 if docker run --rm \
   --platform "$PLATFORM" \
   --network none \
+  -e LEAN_MEMORY_MB=0 \
   -v "$RUN_DIR:/work" \
   -w /work \
   "$IMAGE" \
