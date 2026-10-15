@@ -19,7 +19,7 @@ IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
 EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
 case "$EXPERIMENT_TASK" in
-  update-position-view|wexp|wexp-positive) ;;
+  update-position-view|wexp|wexp-positive|wexp-full|ticktoprice) ;;
   *) echo "Unknown EXPERIMENT_TASK: $EXPERIMENT_TASK" >&2; exit 2 ;;
 esac
 # Second agent using the same backend, journaling progress and a retrospective.
@@ -83,6 +83,9 @@ if [[ "$EXPERIMENT_TASK" == wexp ]]; then
 elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
   python3 scripts/prepare-wexp-positive-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
+elif [[ "$EXPERIMENT_TASK" == wexp-full || "$EXPERIMENT_TASK" == ticktoprice ]]; then
+  python3 scripts/prepare-wexp-full-task.py "$RUN_DIR" "$EXPERIMENT_TASK"
+  python3 "$RUN_DIR/check/check_frozen.py" --start
 fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
@@ -121,6 +124,9 @@ docker run --rm \
     elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
       lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs
       lake env lean check/TickLibPositiveSmoke.lean
+    elif [[ "$EXPERIMENT_TASK" == wexp-full || "$EXPERIMENT_TASK" == ticktoprice ]]; then
+      lake build Midnight.TickLibImportSpec Compiler.SolidityImport.Proofs
+      lake env lean check/TickLibImportSmoke.lean
     else
       lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs
     fi

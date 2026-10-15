@@ -99,6 +99,18 @@ CODEX_AUTH=chatgpt AGENT_BACKEND=codex AGENT_MODEL=gpt-6.1-sol EXPERIMENT_TASK=w
 This freezes `solidity/TickLibPositive.sol`, `Midnight/TickLibPositiveImport.lean`,
 and `Midnight/TickLibPositiveSpec.lean`. Both properties must pass the checker.
 
+To prove monotonicity and successful execution of the original signed
+`TickLib.wExp(int256)`, imported unmodified through Verity:
+
+```sh
+CLAUDE_AUTH=login AGENT_BACKEND=claude AGENT_MODEL=claude-opus-5-5 EXPERIMENT_TASK=wexp-full MONITOR_INTERVAL=1m ./run-experiment.sh
+```
+
+`EXPERIMENT_TASK=ticktoprice` selects the same for the original
+`TickLib.tickToPrice(uint256)`. Both freeze `Midnight/TickLibImport.lean` and
+`Midnight/TickLibImportSpec.lean`; `check/TickLibImportSmoke.lean` compares the
+imported functions with EVM results.
+
 To use your ChatGPT subscription instead of API credits, sign in on the host:
 
 ```sh
