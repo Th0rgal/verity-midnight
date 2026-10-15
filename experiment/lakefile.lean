@@ -12,7 +12,13 @@ input_dir midnightSol where
   filter := .extension "sol"
   text := true
 
+/-- The standalone positive exponential read by `solidity_import`. -/
+input_dir positiveTickSol where
+  path := "solidity"
+  filter := .extension "sol"
+  text := true
+
 @[default_target]
 lean_lib «Midnight» where
   globs := #[.andSubmodules `Midnight]
-  needs := #[midnightSol]
+  needs := #[midnightSol, positiveTickSol]

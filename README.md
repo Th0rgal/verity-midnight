@@ -1,6 +1,6 @@
 # Morpho Midnight prove experiment
 
-Run a Cursor or Codex agent in Docker against a frozen Lean proof task:
+Run a Cursor, Codex or Claude Code agent in Docker against a frozen Lean proof task:
 prove `Midnight.Spec.updatePositionViewProperties` for Morpho Midnight’s
 `updatePositionView` (via Verity’s Solidity import).
 
@@ -20,6 +20,7 @@ backend allows it, and their transcripts are audited after each run (see
 - An API key for your chosen backend: `CURSOR_API_KEY` for Cursor (default),
   or `CODEX_API_KEY` for Codex (an OpenAI Platform API key). Codex can also
   use an existing ChatGPT sign-in with `CODEX_AUTH=chatgpt`.
+  Claude uses `ANTHROPIC_API_KEY` or a subscription token (see below).
 - Git submodules initialized (Midnight Solidity sources):
 
 ```sh
@@ -40,6 +41,45 @@ export CODEX_API_KEY=…
 AGENT_BACKEND=codex ./run-experiment.sh
 ```
 
+To use Claude Code with API credits:
+
+```sh
+export ANTHROPIC_API_KEY=…
+AGENT_BACKEND=claude AGENT_MODEL=opus ./run-experiment.sh
+```
+
+To use your Claude subscription with browser sign-in and a cached login:
+
+```sh
+bash scripts/claude-login.sh
+CLAUDE_AUTH=login AGENT_BACKEND=claude AGENT_MODEL=claude-opus-5-5 EXPERIMENT_TASK=wexp-positive MONITOR_INTERVAL=1m ./run-experiment.sh
+```
+
+Complete the browser sign-in using the URL printed by the login command. If
+the browser callback cannot reach Docker, paste the returned code into that
+terminal. The login cache stays in gitignored `.auth/claude/`; the runner
+copies only credentials into separate prover and monitor homes. The login
+runs inside Linux so credentials are stored in a portable file rather than
+the macOS Keychain. Use `CLAUDE_AUTH_FILE` for a different Linux credential
+cache, or `CLAUDE_AUTH_DIR` to choose the login helper's directory.
+
+Alternatively, generate a token on the host and export the
+token printed by the command:
+
+```sh
+claude setup-token
+export CLAUDE_CODE_OAUTH_TOKEN=…
+CLAUDE_AUTH=oauth AGENT_BACKEND=claude AGENT_MODEL=opus EXPERIMENT_TASK=wexp-positive MONITOR_INTERVAL=1m ./run-experiment.sh
+```
+
+The token uses your subscription's usage limits. A host `claude auth login`
+alone does not provide credentials to Docker when its cache is in the macOS
+Keychain. The token alternative is described in the
+[Claude authentication documentation](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token).
+Both prover and monitor use the chosen model; set `MONITOR_MODEL=sonnet` to
+choose a different monitor model. Model aliases follow Claude Code's current
+defaults; use a full model ID for a reproducible choice.
+
 To run the `wExp` monotonicity task using its manual Lean model:
 
 ```sh
@@ -48,6 +88,16 @@ EXPERIMENT_TASK=wexp AGENT_BACKEND=codex AGENT_MODEL=gpt-6.1-sol ./run-experimen
 
 This selects `Midnight.Spec.wExpIsMonotonic` in a fresh run and freezes
 `Midnight/TickLibSpec.lean`. The original proof task remains the default.
+
+To prove monotonicity and successful execution of the unsigned Solidity
+implementation imported through Verity:
+
+```sh
+CODEX_AUTH=chatgpt AGENT_BACKEND=codex AGENT_MODEL=gpt-6.1-sol EXPERIMENT_TASK=wexp-positive MONITOR_INTERVAL=1m ./run-experiment.sh
+```
+
+This freezes `solidity/TickLibPositive.sol`, `Midnight/TickLibPositiveImport.lean`,
+and `Midnight/TickLibPositiveSpec.lean`. Both properties must pass the checker.
 
 To use your ChatGPT subscription instead of API credits, sign in on the host:
 
@@ -73,14 +123,15 @@ containers receive no key. Keys are never baked into the image.
 What the script does:
 
 1. Copy clean `experiment/` → `runs/<timestamp>/`
-2. Build the `midnight-agent` image (Lean 4.31, elan, Cursor `agent`, Codex, Python)
+2. Build the `midnight-agent` image (Lean 4.31, elan, Cursor `agent`, Codex, Claude Code, Python)
 3. Inside Docker: `lake update`, install pinned linux `solc`,
    `lake build Midnight.Import` (`lean-lsp-mcp` is already in the image)
 4. Start the egress proxy and check that GitHub is unreachable from the agent
    network (skipped with `EGRESS=0`)
 5. Run the selected agent on that run directory (default timeout **120m**), with
    Lean MCP configured through `.cursor/mcp.json` for Cursor or an isolated
-   Codex home with `config.toml` and `required = true` for Codex
+   Codex home with `config.toml` and `required = true` for Codex, or an explicit
+   `--mcp-config` for Claude
 6. Audit the prover transcripts (`scripts/audit_transcripts.py`)
 7. Run `./check/check_proof.sh` in Docker with no network
 8. On success, copy `Midnight/` (and `out/` if present) and the audit report to
@@ -94,14 +145,18 @@ What the script does:
 
 | Variable | Default | Meaning |
 |----------|---------|---------|
-| `AGENT_BACKEND` | `cursor` | `cursor` or `codex`; applies to prover and monitor |
+| `AGENT_BACKEND` | `cursor` | `cursor`, `codex` or `claude`; applies to prover and monitor |
 | `CURSOR_API_KEY` | (required for Cursor) | Cursor agent authentication |
 | `CODEX_API_KEY` | (required for Codex API-key mode) | OpenAI Platform API key; read directly by `codex exec` |
 | `CODEX_AUTH` | `api-key` | Codex authentication: `api-key` or `chatgpt` |
 | `CODEX_AUTH_FILE` | `${CODEX_HOME:-$HOME/.codex}/auth.json` | Host ChatGPT login cache copied into isolated agent homes |
-| `AGENT_MODEL` | Cursor: `gpt-5.6-sol-high`; Codex: `gpt-5.6-sol` | Model ID for the selected backend; Cursor aliases are not OpenAI API model IDs |
-| `AGENT_REASONING_EFFORT` | `high` | Codex reasoning effort, separate from model ID; ignored by Cursor |
-| `MONITOR_REASONING_EFFORT` | `$AGENT_REASONING_EFFORT` | Codex monitor reasoning effort |
+| `ANTHROPIC_API_KEY` | (required for Claude API-key mode) | Anthropic API key |
+| `CLAUDE_AUTH` | `api-key` | Claude authentication: `api-key`, `oauth` or `login` |
+| `CLAUDE_AUTH_FILE` | `.auth/claude/.credentials.json` | Browser login cache copied into isolated agent homes |
+| `CLAUDE_CODE_OAUTH_TOKEN` | (required for Claude OAuth mode) | Subscription token from `claude setup-token` |
+| `AGENT_MODEL` | Cursor: `gpt-5.6-sol-high`; Codex: `gpt-6.1-sol`; Claude: `opus` | Model ID or alias for the selected backend |
+| `AGENT_REASONING_EFFORT` | `high` | Codex or Claude reasoning effort, separate from model ID; ignored by Cursor |
+| `MONITOR_REASONING_EFFORT` | `$AGENT_REASONING_EFFORT` | Codex or Claude monitor reasoning effort |
 | `AGENT_TIMEOUT` | `120m` | Cap on the prover agent step only (`timeout(1)` inside the container) |
 | `MONITOR` | `1` | Set `0` to disable the sidecar progress agent |
 | `MONITOR_MODEL` | `$AGENT_MODEL` | Model for the monitor / retrospective agent |
@@ -119,14 +174,22 @@ isolation, including read-only prover mounts in the monitor container.
 See [Codex automation](https://learn.chatgpt.com/docs/non-interactive-mode) and
 [MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
+Claude Code is pinned to `2.1.300` (`CLAUDE_VERSION` in the Dockerfile).
+It runs with explicit Bash/file/Lean MCP tool approvals and `dontAsk` permission
+mode inside Docker. Hosted web tools, cloud connectors, automatic updates and
+nonessential traffic are disabled. The monitor has no MCP servers and resumes
+its own conversation with `--continue`. See
+[Claude automation](https://code.claude.com/docs/en/headless).
+
 While the prover runs, `[prover]` and `[monitor]` lines are streamed to the host
 stdout. The monitor keeps one resumed session with a separate RW volume
 (`monitor-logs/<id>/`); the prover workspace is mounted **read-only** at
 `/prover`. Journal and retrospective live only under `monitor-logs/<id>/`
 (not visible to the prover).
 Run IDs include the backend name. Cursor transcripts remain in its isolated
-home; Codex events are saved to `runs/<id>/.prover-codex/prover-events.jsonl`.
-The monitor reads these through a separate read-only mount. Codex resumes its
+home; Codex and Claude events are saved to
+`runs/<id>/.prover-<backend>/prover-events.jsonl`.
+The monitor reads these through a separate read-only mount. Codex and Claude resume their
 own latest session between ticks; the prover always starts a fresh session.
 Examples:
 
@@ -187,6 +250,8 @@ writing one:
    and add them with `EGRESS_ALLOW_EXTRA`.
 2. **No hosted web tools.** Web search runs on the model provider's side, so
    the proxy cannot stop it. Codex runs with `web_search = "disabled"`.
+   Claude exposes only Bash/file/Lean MCP tools and explicitly denies
+   `WebSearch` and `WebFetch`.
    Cursor's `experiment/.cursor/cli.json` denies `WebFetch`; the Cursor CLI has
    no documented switch for web search, so layer 3 covers it.
 3. **Transcript audit.** After the prover stops, `scripts/audit_transcripts.py`
@@ -207,6 +272,7 @@ normal network access. `./shell.sh` is not isolated.
 ./shell.sh <run-id>        # mount runs/<run-id>/ + cache/
 ./shell.sh runs/<run-id>   # same, explicit path
 AGENT_BACKEND=codex ./shell.sh <run-id>
+CLAUDE_AUTH=oauth AGENT_BACKEND=claude ./shell.sh <run-id>
 ```
 
 Uses `AGENT_BACKEND` / `PLATFORM` / `IMAGE` like `run-experiment.sh`. For Codex,
@@ -215,3 +281,10 @@ Noninteractive `codex exec` uses that key directly. For the interactive Codex
 CLI, first run `printenv CODEX_API_KEY | codex login --with-api-key` inside the
 container. Prefer a `runs/<id>` mount
 for Lean builds so `experiment/` stays the clean template.
+
+For Claude, the shell forwards the selected API key or OAuth token. Inside it,
+run `claude --strict-mcp-config --mcp-config /opt/midnight/claude-prover.json`
+to connect the Lean MCP server. Use `AGENT_MODEL` to choose the experiment's
+model; the interactive CLI also accepts `--model`.
+
+Credential-free runner checks: `python3 scripts/test_claude_backend.py`.

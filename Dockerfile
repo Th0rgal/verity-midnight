@@ -28,13 +28,19 @@ ENV PATH="/opt/lean-mcp/bin:${PATH}"
 RUN curl https://cursor.com/install -fsS | bash
 ENV PATH="/root/.local/bin:${PATH}"
 
-# Codex CLI (both backends are available in the same image).
+# Agent CLIs (all backends are available in the same image).
 ARG CODEX_VERSION=0.162.0
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g "@openai/codex@${CODEX_VERSION}" \
     && codex --version
 
-COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/egress/tinyproxy.conf /opt/midnight/
+ARG CLAUDE_VERSION=2.1.300
+RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh \
+    && bash /tmp/install-claude.sh "${CLAUDE_VERSION}" \
+    && rm /tmp/install-claude.sh \
+    && claude --version
+
+COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/claude-common.sh scripts/claude-prover.json scripts/egress/tinyproxy.conf /opt/midnight/
 
 WORKDIR /work

@@ -14,6 +14,7 @@ own (Codex checks its releases), and a refused request returned nothing.
 """
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -33,7 +34,7 @@ REFUSED = re.compile(r'refused on filtered domain "([^"]+)"')
 
 def transcript_files(backend, prover_home):
     home = Path(prover_home)
-    if backend == 'codex':
+    if backend in ('codex', 'claude'):
         files = [home / 'prover-events.jsonl']
     else:
         files = [p for p in (home / 'projects').rglob('*') if p.is_file()]
@@ -54,9 +55,35 @@ def scan(files, pattern):
     return hits
 
 
+def claude_web_tools(files):
+    """Inspect calls, not the tools advertised in Claude's init event or prose."""
+    hits = []
+
+    def calls(value):
+        if isinstance(value, dict):
+            if value.get('type') == 'tool_use':
+                yield value.get('name', '')
+            for child in value.values():
+                yield from calls(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from calls(child)
+
+    for path in files:
+        for lineno, line in enumerate(path.read_text(errors='replace').splitlines(), 1):
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            for name in calls(event):
+                if name in ('WebSearch', 'WebFetch', 'web_search', 'web_fetch'):
+                    hits.append(f'{path.name}:{lineno}: {name}')
+    return hits
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--backend', required=True, choices=['cursor', 'codex'])
+    ap.add_argument('--backend', required=True, choices=['cursor', 'codex', 'claude'])
     ap.add_argument('--prover-home', required=True)
     ap.add_argument('--proxy-log', help='tinyproxy log; omit when egress filtering is off')
     ap.add_argument('--out', required=True, help='Markdown report path')
@@ -64,7 +91,7 @@ def main():
 
     files = transcript_files(args.backend, args.prover_home)
     egress = args.proxy_log is not None
-    web_tool = scan(files, WEB_TOOL)
+    web_tool = claude_web_tools(files) if args.backend == 'claude' else scan(files, WEB_TOOL)
     network = scan(files, NETWORK_COMMAND)
     sources = scan(files, ANSWER_SOURCE)
     refused = []

@@ -11,7 +11,7 @@ BACKEND="${AGENT_BACKEND:-cursor}"
 PROVER_HOME="${PROVER_HOME_MOUNT:-/prover-agent-home}"
 case "$BACKEND" in
   cursor) PROVER_TRANSCRIPTS="$PROVER_HOME/projects/" ;;
-  codex) PROVER_TRANSCRIPTS="$PROVER_HOME/prover-events.jsonl" ;;
+  codex|claude) PROVER_TRANSCRIPTS="$PROVER_HOME/prover-events.jsonl" ;;
   *) echo "Unknown AGENT_BACKEND: $BACKEND" >&2; exit 2 ;;
 esac
 MONITOR_DIR="${MONITOR_DIR_MOUNT:-/monitor}"
@@ -92,6 +92,15 @@ run_agent() {
       --add-dir "$PROVER_HOME" \
       "$@" \
       "$prompt"
+  elif [[ "$BACKEND" == claude ]]; then
+    source /opt/midnight/claude-common.sh
+    # --add-dir is variadic, so a trailing prompt argument would be read as a
+    # directory; pass the prompt on stdin instead.
+    run_claude --model "$MODEL" \
+      --effort "${MONITOR_REASONING_EFFORT:-high}" \
+      --mcp-config '{"mcpServers":{}}' \
+      --add-dir "$PROVER_ROOT" --add-dir "$PROVER_HOME" \
+      "$@" <<<"$prompt"
   else
     # The monitor has its own Codex home and no Lean MCP configuration.
     # Read access to prover mounts comes from Docker; --add-dir grants writes

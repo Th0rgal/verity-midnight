@@ -6,3 +6,4 @@ audit-logs/
 results/
 cache/
 .env
+.auth/

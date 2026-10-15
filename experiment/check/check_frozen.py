@@ -20,10 +20,14 @@ INITIAL = {
 }
 
 EXPECTED = {
+    'solidity/test/TickLibPositive.t.sol': '05b64f85ae227d2d04f821c0f0e76df1f16ce2aaa5ff098f78e98c21a550902b',
+    'solidity/TickLibPositive.sol': 'e7a838aedc417e57ae405b7b3323af2a6bbae86ebdef63caf98bf2bbc5bba464',
+    'Midnight/TickLibPositiveSpec.lean': '9c1086b6a307c3ac797cfafb6f54c8a3589c570641dda24893e15d13e4a9f445',
+    'Midnight/TickLibPositiveImport.lean': '6f1e5c3ca1474977ecd06730927c8b35c4f9bddcaef68a3ff42c874c0e5fb327',
     'Midnight.lean': 'b6b1dce82ab672ceea9235dbe00d25d8a7952b2d677af13dc96cb1a57f97075a',
     'Midnight/Import.lean': '9f3c7c579b32c4e19c3776a628125acf5505f5dd03d08643c629ba0b2a10e4a7',
     'Midnight/Spec.lean': '85aa1c33727c88206f6b63402ca52b41407ee4a8a21519afa3ed9ed34317435b',
-    'lakefile.lean': 'd6ebbef54c536ec8d86fb2dbabb413b842b871a8d3dec9a257afe6305e7b41a2',
+    'lakefile.lean': '722949f6a3917778c30486ccf8e063aea9a6e438da7e2f0f0b1bb23013fd7110',
     'lake-manifest.json': '1757a560691339d179d4608782a7c1d7a32734883f035a62d9defc6a2c5f87ec',
     'lean-toolchain': 'efac0b94923b2d8b6840cd35be9177ad0fc5ab2332f4f4311c98712cee92fdee',
     'check/Goal.lean': 'fc36b125b4acb6ff3462efdefc745289609e7a50e6db644c4931f79c940383cc',

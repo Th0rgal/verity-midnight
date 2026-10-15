@@ -37,7 +37,7 @@ if [[ "$WORK_DIR" == "$PWD/runs/"* ]]; then
   echo "Mounting $WORK_DIR at /work (cache at /cache)."
   exec docker run --rm -it \
     --platform "$PLATFORM" \
-    -e "$AGENT_KEY_ENV" \
+    $AGENT_AUTH_ARGS \
     -e AGENT_BACKEND="$AGENT_BACKEND" \
     -e AGENT_MODEL="$AGENT_MODEL" \
     -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
@@ -52,7 +52,7 @@ fi
 echo "Mounting experiment/ at /work — avoid leaving .lake or edits in the template."
 exec docker run --rm -it \
   --platform "$PLATFORM" \
-  -e "$AGENT_KEY_ENV" \
+  $AGENT_AUTH_ARGS \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
   -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \

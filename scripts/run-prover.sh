@@ -16,5 +16,13 @@ case "${AGENT_BACKEND:-cursor}" in
       -c "model_reasoning_effort=\"${AGENT_REASONING_EFFORT:-high}\"" \
       --json "$PROMPT" | tee /root/.codex/prover-events.jsonl
     ;;
+  claude)
+    source /opt/midnight/claude-common.sh
+    run_claude --model "${AGENT_MODEL:?}" \
+      --effort "${AGENT_REASONING_EFFORT:-high}" \
+      --mcp-config /opt/midnight/claude-prover.json \
+      --verbose --output-format stream-json "$PROMPT" \
+      | tee /root/.claude/prover-events.jsonl
+    ;;
   *) echo "Unknown AGENT_BACKEND: $AGENT_BACKEND" >&2; exit 2 ;;
 esac

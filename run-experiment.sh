@@ -7,6 +7,8 @@ cd "$(dirname "$0")"
 source scripts/agent-backend.sh
 if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
   python3 scripts/codex-auth.py "$CODEX_AUTH_FILE"
+elif [[ "$AGENT_BACKEND" == claude && "$CLAUDE_AUTH" == login ]]; then
+  python3 scripts/claude-auth.py "$CLAUDE_AUTH_FILE"
 elif [[ -z "${!AGENT_KEY_ENV:-}" ]]; then
   echo "$AGENT_KEY_ENV must be set for AGENT_BACKEND=$AGENT_BACKEND" >&2
   exit 2
@@ -17,7 +19,7 @@ IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
 EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
 case "$EXPERIMENT_TASK" in
-  update-position-view|wexp) ;;
+  update-position-view|wexp|wexp-positive) ;;
   *) echo "Unknown EXPERIMENT_TASK: $EXPERIMENT_TASK" >&2; exit 2 ;;
 esac
 # Second agent using the same backend, journaling progress and a retrospective.
@@ -78,6 +80,9 @@ rm -rf "$RUN_DIR/.lake" "$RUN_DIR/out"
 if [[ "$EXPERIMENT_TASK" == wexp ]]; then
   python3 scripts/prepare-wexp-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
+elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
+  python3 scripts/prepare-wexp-positive-task.py "$RUN_DIR"
+  python3 "$RUN_DIR/check/check_frozen.py" --start
 fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
@@ -113,6 +118,9 @@ docker run --rm \
     cp -a .lake/solidity-import/solc-0.8.34 /cache/solidity-import/solc-0.8.34
     if [[ "$EXPERIMENT_TASK" == wexp ]]; then
       lake build Midnight.TickLibSpec
+    elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
+      lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs
+      lake env lean check/TickLibPositiveSmoke.lean
     else
       lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs
     fi
@@ -200,6 +208,8 @@ if [[ "$AGENT_BACKEND" == codex ]]; then
   if [[ "$CODEX_AUTH" == chatgpt ]]; then
     python3 scripts/codex-auth.py "$CODEX_AUTH_FILE" "$PROVER_HOME" "$MONITOR_HOME"
   fi
+elif [[ "$AGENT_BACKEND" == claude && "$CLAUDE_AUTH" == login ]]; then
+  python3 scripts/claude-auth.py "$CLAUDE_AUTH_FILE" "$PROVER_HOME" "$MONITOR_HOME"
 fi
 MONITOR_STARTED=0
 
@@ -345,6 +355,9 @@ if docker run --rm \
 then
   mkdir -p "$RESULT_DIR"
   cp -a "$RUN_DIR/Midnight" "$RESULT_DIR/"
+  if [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
+    cp -a "$RUN_DIR/solidity" "$RESULT_DIR/"
+  fi
   cp -a "$RUN_DIR/out" "$RESULT_DIR/" 2>/dev/null || true
   # Copy monitor artifacts only, excluding backend session storage.
   if [[ -d "$MONITOR_DIR" ]]; then
