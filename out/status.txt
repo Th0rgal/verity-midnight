@@ -1,0 +1,1 @@
+GAVE UP: proof incomplete. The remaining obligations are exact monotonicity and totality of the generated wExp interpreter; check/check_proof.sh does not pass.

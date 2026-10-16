@@ -1,0 +1,843 @@
+frozen files unchanged (488)
+⚠ [18/91] Replayed Verity.Core
+warning: Verity/Core.lean:766:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1683:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1923:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+✔ [83/91] Built Midnight.TickLibSpec (897ms)
+✖ [84/91] Building Midnight.Probe (2.9s)
+trace: .> LEAN_PATH=/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/Cli/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/batteries/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/Qq/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/aesop/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/proofwidgets/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/importGraph/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/plausible/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/mathlib/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/evmyul/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/verity/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/.elan/toolchains/leanprover--lean4---v4.31.0/bin/lean /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/Midnight/Probe.lean -o /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean/Midnight/Probe.olean -i /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean/Midnight/Probe.ilean -c /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/ir/Midnight/Probe.c --setup /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/ir/Midnight/Probe.setup.json --json
+info: Midnight/Probe.lean:3:0: def tickLib.wExp : Compiler.CompilationModel.Denote.DenoteOracle →
+  Verity.ContractState → Verity.Core.Int256 → Option Verity.Core.Uint256 :=
+fun oracle world x =>
+  match
+    Compiler.CompilationModel.SolidityImport.runFunction oracle tickLib.model "wExp" world
+      [("x", Compiler.CompilationModel.SolidityImport.Word.toWord x)] with
+  | some [r0] => some (Compiler.CompilationModel.SolidityImport.Word.ofWord r0)
+  | x => none
+info: Midnight/Probe.lean:4:0: def tickLib.model : Compiler.CompilationModel.CompilationModel :=
+{ name := "TickLibWrapper", fields := [], constructor := none,
+  functions :=
+    [{ name := "wExp", params := [{ name := "x", ty := Compiler.CompilationModel.ParamType.int256 }],
+        returnType := none, returns := [Compiler.CompilationModel.ParamType.uint256], isView := true,
+        body :=
+          [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_0"
+              ((Compiler.CompilationModel.Expr.param "x").slt (Compiler.CompilationModel.Expr.literal 0)),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_22" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_0")
+              [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_1"
+                  ((Compiler.CompilationModel.Expr.literal 0).sub (Compiler.CompilationModel.Expr.param "x")),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").slt
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.revertReturndata] [],
+                Compiler.CompilationModel.Stmt.letVar "ln2" (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                Compiler.CompilationModel.Stmt.letVar "offset"
+                  (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_2"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").add
+                    (Compiler.CompilationModel.Expr.localVar "offset")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_3" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "ln2").eq (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_3"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_2").sdiv
+                        (Compiler.CompilationModel.Expr.localVar "ln2"))],
+                Compiler.CompilationModel.Stmt.letVar "q"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_3"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_4"
+                  ((Compiler.CompilationModel.Expr.localVar "q").mul (Compiler.CompilationModel.Expr.localVar "ln2")),
+                Compiler.CompilationModel.Stmt.letVar "r"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").sub
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_5"
+                  ((Compiler.CompilationModel.Expr.localVar "r").mul (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_6" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_6"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_5").sdiv
+                        (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "secondTerm"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_7"
+                  ((Compiler.CompilationModel.Expr.localVar "secondTerm").mul
+                    (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_8" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_8"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_7").sdiv
+                        (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "thirdTerm"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_8"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_9"
+                  ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                    (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_10"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_9").add
+                    (Compiler.CompilationModel.Expr.localVar "secondTerm")),
+                Compiler.CompilationModel.Stmt.letVar "expR"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_10").add
+                    (Compiler.CompilationModel.Expr.localVar "thirdTerm")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_11"
+                  ((Compiler.CompilationModel.Expr.localVar "q").shl (Compiler.CompilationModel.Expr.localVar "expR")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_12" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11").eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_12"
+                      ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).div
+                        (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11"))],
+                Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_12")]
+              [Compiler.CompilationModel.Stmt.letVar "ln2_1"
+                  (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                Compiler.CompilationModel.Stmt.letVar "offset_1"
+                  (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_13"
+                  ((Compiler.CompilationModel.Expr.param "x").add (Compiler.CompilationModel.Expr.localVar "offset_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_14" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "ln2_1").eq (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_14"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_13").sdiv
+                        (Compiler.CompilationModel.Expr.localVar "ln2_1"))],
+                Compiler.CompilationModel.Stmt.letVar "q_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_14"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_15"
+                  ((Compiler.CompilationModel.Expr.localVar "q_1").mul
+                    (Compiler.CompilationModel.Expr.localVar "ln2_1")),
+                Compiler.CompilationModel.Stmt.letVar "r_1"
+                  ((Compiler.CompilationModel.Expr.param "x").sub
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_15")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_16"
+                  ((Compiler.CompilationModel.Expr.localVar "r_1").mul (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_17" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_17"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16").sdiv
+                        (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "secondTerm_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_17"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_18"
+                  ((Compiler.CompilationModel.Expr.localVar "secondTerm_1").mul
+                    (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_19" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_19"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_18").sdiv
+                        (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "thirdTerm_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_19"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_20"
+                  ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                    (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_21"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_20").add
+                    (Compiler.CompilationModel.Expr.localVar "secondTerm_1")),
+                Compiler.CompilationModel.Stmt.letVar "expR_1"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_21").add
+                    (Compiler.CompilationModel.Expr.localVar "thirdTerm_1")),
+                Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                  ((Compiler.CompilationModel.Expr.localVar "q_1").shl
+                    (Compiler.CompilationModel.Expr.localVar "expR_1"))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_23"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_22"),
+            Compiler.CompilationModel.Stmt.returnValues
+              [Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_23"]],
+        localObligations :=
+          [{ name := "solidity_scalar_abi_entry",
+              obligation :=
+                "Raw source scalar and memory-struct words are validated before source execution; calldata-struct fields are validated at their reads. Within this fragment without external calls the fresh EIP-211 returndata buffer stays empty, so failed guards revert with no bytes. The solc-to-model boundary is checked differentially, not proved.",
+              proofStatus := Compiler.ProofStatus.unchecked }] },
+      { name := "tickToPrice", params := [{ name := "tick", ty := Compiler.CompilationModel.ParamType.uint256 }],
+        returnType := none, returns := [Compiler.CompilationModel.ParamType.uint256], isView := true,
+        body :=
+          [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_0"
+              ((Compiler.CompilationModel.Expr.param "tick").le (Compiler.CompilationModel.Expr.literal 6744)),
+            Compiler.CompilationModel.Stmt.requireError (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_0")
+              "TickOutOfRange" [],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_1" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite
+              ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+              [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+              [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_1"
+                  ((Compiler.CompilationModel.Expr.literal 6744).div (Compiler.CompilationModel.Expr.literal 2))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_2"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_3"
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_2").sub
+                (Compiler.CompilationModel.Expr.param "tick")),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_4"
+              ((Compiler.CompilationModel.Expr.literal 4987541511039073).mul
+                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_3")),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_5"
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").slt
+                (Compiler.CompilationModel.Expr.literal 0)),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_27" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_5")
+              [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_6"
+                  ((Compiler.CompilationModel.Expr.literal 0).sub
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4")),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").slt
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.revertReturndata] [],
+                Compiler.CompilationModel.Stmt.letVar "ln2" (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                Compiler.CompilationModel.Stmt.letVar "offset"
+                  (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_7"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").add
+                    (Compiler.CompilationModel.Expr.localVar "offset")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_8" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "ln2").eq (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_8"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_7").sdiv
+                        (Compiler.CompilationModel.Expr.localVar "ln2"))],
+                Compiler.CompilationModel.Stmt.letVar "q"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_8"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_9"
+                  ((Compiler.CompilationModel.Expr.localVar "q").mul (Compiler.CompilationModel.Expr.localVar "ln2")),
+                Compiler.CompilationModel.Stmt.letVar "r"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").sub
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_9")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_10"
+                  ((Compiler.CompilationModel.Expr.localVar "r").mul (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_11" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_11"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_10").sdiv
+                        (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "secondTerm"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_12"
+                  ((Compiler.CompilationModel.Expr.localVar "secondTerm").mul
+                    (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_13" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_13"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_12").sdiv
+                        (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "thirdTerm"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_13"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_14"
+                  ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                    (Compiler.CompilationModel.Expr.localVar "r")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_15"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_14").add
+                    (Compiler.CompilationModel.Expr.localVar "secondTerm")),
+                Compiler.CompilationModel.Stmt.letVar "expR"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_15").add
+                    (Compiler.CompilationModel.Expr.localVar "thirdTerm")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_16"
+                  ((Compiler.CompilationModel.Expr.localVar "q").shl (Compiler.CompilationModel.Expr.localVar "expR")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_17" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16").eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_17"
+                      ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).div
+                        (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16"))],
+                Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_27"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_17")]
+              [Compiler.CompilationModel.Stmt.letVar "ln2_1"
+                  (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                Compiler.CompilationModel.Stmt.letVar "offset_1"
+                  (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_18"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").add
+                    (Compiler.CompilationModel.Expr.localVar "offset_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_19" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.localVar "ln2_1").eq (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_19"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_18").sdiv
+                        (Compiler.CompilationModel.Expr.localVar "ln2_1"))],
+                Compiler.CompilationModel.Stmt.letVar "q_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_19"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_20"
+                  ((Compiler.CompilationModel.Expr.localVar "q_1").mul
+                    (Compiler.CompilationModel.Expr.localVar "ln2_1")),
+                Compiler.CompilationModel.Stmt.letVar "r_1"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").sub
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_20")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_21"
+                  ((Compiler.CompilationModel.Expr.localVar "r_1").mul (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_22" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_21").sdiv
+                        (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "secondTerm_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_22"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_23"
+                  ((Compiler.CompilationModel.Expr.localVar "secondTerm_1").mul
+                    (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_24" (Compiler.CompilationModel.Expr.literal 0),
+                Compiler.CompilationModel.Stmt.ite
+                  ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                    (Compiler.CompilationModel.Expr.literal 0))
+                  [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                  [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_24"
+                      ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_23").sdiv
+                        (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                Compiler.CompilationModel.Stmt.letVar "thirdTerm_1"
+                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_24"),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_25"
+                  ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                    (Compiler.CompilationModel.Expr.localVar "r_1")),
+                Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_26"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_25").add
+                    (Compiler.CompilationModel.Expr.localVar "secondTerm_1")),
+                Compiler.CompilationModel.Stmt.letVar "expR_1"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_26").add
+                    (Compiler.CompilationModel.Expr.localVar "thirdTerm_1")),
+                Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_27"
+                  ((Compiler.CompilationModel.Expr.localVar "q_1").shl
+                    (Compiler.CompilationModel.Expr.localVar "expR_1"))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_28"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_27"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_29"
+              ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_28")),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_30"
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29").sub
+                (Compiler.CompilationModel.Expr.literal 1)),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_31" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite
+              ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+              [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+              [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_31"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_30").div
+                    (Compiler.CompilationModel.Expr.literal 2))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_32"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_31"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_33"
+              ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).add
+                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_32")),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_34" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29").eq
+                (Compiler.CompilationModel.Expr.literal 0))
+              [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+              [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_34"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_33").div
+                    (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29"))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_35"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_34"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_36"
+              ((Compiler.CompilationModel.Expr.literal 100000000000).sub (Compiler.CompilationModel.Expr.literal 1)),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_37" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite
+              ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+              [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+              [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_37"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_36").div
+                    (Compiler.CompilationModel.Expr.literal 2))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_38"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_37"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_39"
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_35").add
+                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_38")),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_40" (Compiler.CompilationModel.Expr.literal 0),
+            Compiler.CompilationModel.Stmt.ite
+              ((Compiler.CompilationModel.Expr.literal 100000000000).eq (Compiler.CompilationModel.Expr.literal 0))
+              [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+              [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_40"
+                  ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_39").div
+                    (Compiler.CompilationModel.Expr.literal 100000000000))],
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_41"
+              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_40"),
+            Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_42"
+              ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_41").mul
+                (Compiler.CompilationModel.Expr.literal 100000000000)),
+            Compiler.CompilationModel.Stmt.returnValues
+              [Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_42"]],
+        localObligations :=
+          [{ name := "solidity_scalar_abi_entry",
+              obligation :=
+                "Raw source scalar and memory-struct words are validated before source execution; calldata-struct fields are validated at their reads. Within this fragment without external calls the fresh EIP-211 returndata buffer stays empty, so failed guards revert with no bytes. The solc-to-model boundary is checked differentially, not proved.",
+              proofStatus := Compiler.ProofStatus.unchecked }] }],
+  errors := [{ name := "TickOutOfRange", params := [] }] }
+error: Midnight/Probe.lean:5:7: Unknown constant `Verity.Stdlib.Math.tickWExpReference`
+error: Lean exited with code 1
+✔ [85/91] Built Midnight.TickLibPositiveImport (18s)
+✔ [86/91] Built Midnight.TickLibPositiveSpec (2.0s)
+✔ [87/91] Built Midnight.Import (23s)
+✔ [88/91] Built Midnight.Spec (2.0s)
+✖ [89/91] Building Midnight.Proof (33s)
+trace: .> LEAN_PATH=/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/Cli/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/batteries/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/Qq/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/aesop/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/proofwidgets/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/importGraph/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/LeanSearchClient/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/plausible/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/mathlib/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/evmyul/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/packages/verity/.lake/build/lib/lean:/var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/.elan/toolchains/leanprover--lean4---v4.31.0/bin/lean /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/Midnight/Proof.lean -o /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean/Midnight/Proof.olean -i /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/lib/lean/Midnight/Proof.ilean -c /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/ir/Midnight/Proof.c --setup /var/lib/sandboxed-node/c301fe5b-ace6-4829-9a4a-721ec93c2a70/trial/.lake/build/ir/Midnight/Proof.setup.json --json
+error: Midnight/Proof.lean:10:2: omega could not prove the goal:
+No usable constraints found. You may need to unfold definitions so `omega` can see linear arithmetic facts about `Nat` and `Int`, which may also involve multiplication, division, and modular remainder by constants.
+error: Midnight/Proof.lean:12:58: unsolved goals
+oracle : Compiler.CompilationModel.Denote.DenoteOracle
+world : Verity.ContractState
+x : Verity.Core.Int256
+hx : Spec.TickLibImport.inWExpRange x
+⊢ ∃ result,
+    (match
+        match
+          Compiler.CompilationModel.Denote.execStmtList oracle []
+            { world := world, bindings := [("x", x.toUint256.val)],
+              errors := [{ name := "TickOutOfRange", params := [] }] }
+            (Compiler.CompilationModel.SolidityImport.functionBody
+              { name := "TickLibWrapper", fields := [], constructor := none,
+                functions :=
+                  [{ name := "wExp", params := [{ name := "x", ty := Compiler.CompilationModel.ParamType.int256 }],
+                      returnType := none, returns := [Compiler.CompilationModel.ParamType.uint256], isView := true,
+                      body :=
+                        [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_0"
+                            ((Compiler.CompilationModel.Expr.param "x").slt (Compiler.CompilationModel.Expr.literal 0)),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_22"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_0")
+                            [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_1"
+                                ((Compiler.CompilationModel.Expr.literal 0).sub
+                                  (Compiler.CompilationModel.Expr.param "x")),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").slt
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.revertReturndata] [],
+                              Compiler.CompilationModel.Stmt.letVar "ln2"
+                                (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                              Compiler.CompilationModel.Stmt.letVar "offset"
+                                (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_2"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").add
+                                  (Compiler.CompilationModel.Expr.localVar "offset")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_3"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "ln2").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_3"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_2").sdiv
+                                      (Compiler.CompilationModel.Expr.localVar "ln2"))],
+                              Compiler.CompilationModel.Stmt.letVar "q"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_3"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_4"
+                                ((Compiler.CompilationModel.Expr.localVar "q").mul
+                                  (Compiler.CompilationModel.Expr.localVar "ln2")),
+                              Compiler.CompilationModel.Stmt.letVar "r"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1").sub
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_5"
+                                ((Compiler.CompilationModel.Expr.localVar "r").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_6"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_6"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_5").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "secondTerm"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_7"
+                                ((Compiler.CompilationModel.Expr.localVar "secondTerm").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_8"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_8"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_7").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "thirdTerm"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_8"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_9"
+                                ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_10"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_9").add
+                                  (Compiler.CompilationModel.Expr.localVar "secondTerm")),
+                              Compiler.CompilationModel.Stmt.letVar "expR"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_10").add
+                                  (Compiler.CompilationModel.Expr.localVar "thirdTerm")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_11"
+                                ((Compiler.CompilationModel.Expr.localVar "q").shl
+                                  (Compiler.CompilationModel.Expr.localVar "expR")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_12"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_12"
+                                    ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).div
+                                      (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11"))],
+                              Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_12")]
+                            [Compiler.CompilationModel.Stmt.letVar "ln2_1"
+                                (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                              Compiler.CompilationModel.Stmt.letVar "offset_1"
+                                (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_13"
+                                ((Compiler.CompilationModel.Expr.param "x").add
+                                  (Compiler.CompilationModel.Expr.localVar "offset_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_14"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "ln2_1").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_14"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_13").sdiv
+                                      (Compiler.CompilationModel.Expr.localVar "ln2_1"))],
+                              Compiler.CompilationModel.Stmt.letVar "q_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_14"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_15"
+                                ((Compiler.CompilationModel.Expr.localVar "q_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "ln2_1")),
+                              Compiler.CompilationModel.Stmt.letVar "r_1"
+                                ((Compiler.CompilationModel.Expr.param "x").sub
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_15")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_16"
+                                ((Compiler.CompilationModel.Expr.localVar "r_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_17"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_17"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "secondTerm_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_17"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_18"
+                                ((Compiler.CompilationModel.Expr.localVar "secondTerm_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_19"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_19"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_18").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "thirdTerm_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_19"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_20"
+                                ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_21"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_20").add
+                                  (Compiler.CompilationModel.Expr.localVar "secondTerm_1")),
+                              Compiler.CompilationModel.Stmt.letVar "expR_1"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_21").add
+                                  (Compiler.CompilationModel.Expr.localVar "thirdTerm_1")),
+                              Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                                ((Compiler.CompilationModel.Expr.localVar "q_1").shl
+                                  (Compiler.CompilationModel.Expr.localVar "expR_1"))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_23"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_22"),
+                          Compiler.CompilationModel.Stmt.returnValues
+                            [Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_23"]],
+                      localObligations :=
+                        [{ name := "solidity_scalar_abi_entry",
+                            obligation :=
+                              "Raw source scalar and memory-struct words are validated before source execution; calldata-struct fields are validated at their reads. Within this fragment without external calls the fresh EIP-211 returndata buffer stays empty, so failed guards revert with no bytes. The solc-to-model boundary is checked differentially, not proved.",
+                            proofStatus := Compiler.ProofStatus.unchecked }] },
+                    { name := "tickToPrice",
+                      params := [{ name := "tick", ty := Compiler.CompilationModel.ParamType.uint256 }],
+                      returnType := none, returns := [Compiler.CompilationModel.ParamType.uint256], isView := true,
+                      body :=
+                        [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_0"
+                            ((Compiler.CompilationModel.Expr.param "tick").le
+                              (Compiler.CompilationModel.Expr.literal 6744)),
+                          Compiler.CompilationModel.Stmt.requireError
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_0") "TickOutOfRange" [],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_1"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+                            [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                            [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_1"
+                                ((Compiler.CompilationModel.Expr.literal 6744).div
+                                  (Compiler.CompilationModel.Expr.literal 2))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_2"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_1"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_3"
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_2").sub
+                              (Compiler.CompilationModel.Expr.param "tick")),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_4"
+                            ((Compiler.CompilationModel.Expr.literal 4987541511039073).mul
+                              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_3")),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_5"
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").slt
+                              (Compiler.CompilationModel.Expr.literal 0)),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_27"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_5")
+                            [Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_6"
+                                ((Compiler.CompilationModel.Expr.literal 0).sub
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4")),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").slt
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.revertReturndata] [],
+                              Compiler.CompilationModel.Stmt.letVar "ln2"
+                                (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                              Compiler.CompilationModel.Stmt.letVar "offset"
+                                (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_7"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").add
+                                  (Compiler.CompilationModel.Expr.localVar "offset")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_8"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "ln2").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_8"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_7").sdiv
+                                      (Compiler.CompilationModel.Expr.localVar "ln2"))],
+                              Compiler.CompilationModel.Stmt.letVar "q"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_8"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_9"
+                                ((Compiler.CompilationModel.Expr.localVar "q").mul
+                                  (Compiler.CompilationModel.Expr.localVar "ln2")),
+                              Compiler.CompilationModel.Stmt.letVar "r"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_6").sub
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_9")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_10"
+                                ((Compiler.CompilationModel.Expr.localVar "r").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_11"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_11"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_10").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "secondTerm"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_11"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_12"
+                                ((Compiler.CompilationModel.Expr.localVar "secondTerm").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_13"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_13"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_12").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "thirdTerm"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_13"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_14"
+                                ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                                  (Compiler.CompilationModel.Expr.localVar "r")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_15"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_14").add
+                                  (Compiler.CompilationModel.Expr.localVar "secondTerm")),
+                              Compiler.CompilationModel.Stmt.letVar "expR"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_15").add
+                                  (Compiler.CompilationModel.Expr.localVar "thirdTerm")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_16"
+                                ((Compiler.CompilationModel.Expr.localVar "q").shl
+                                  (Compiler.CompilationModel.Expr.localVar "expR")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_17"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_17"
+                                    ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).div
+                                      (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_16"))],
+                              Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_27"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_17")]
+                            [Compiler.CompilationModel.Stmt.letVar "ln2_1"
+                                (Compiler.CompilationModel.Expr.literal 693147180559945309),
+                              Compiler.CompilationModel.Stmt.letVar "offset_1"
+                                (Compiler.CompilationModel.Expr.literal 322611214989459870),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_18"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").add
+                                  (Compiler.CompilationModel.Expr.localVar "offset_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_19"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.localVar "ln2_1").eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_19"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_18").sdiv
+                                      (Compiler.CompilationModel.Expr.localVar "ln2_1"))],
+                              Compiler.CompilationModel.Stmt.letVar "q_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_19"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_20"
+                                ((Compiler.CompilationModel.Expr.localVar "q_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "ln2_1")),
+                              Compiler.CompilationModel.Stmt.letVar "r_1"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_4").sub
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_20")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_21"
+                                ((Compiler.CompilationModel.Expr.localVar "r_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_22"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 2000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_22"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_21").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 2000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "secondTerm_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_22"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_23"
+                                ((Compiler.CompilationModel.Expr.localVar "secondTerm_1").mul
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_24"
+                                (Compiler.CompilationModel.Expr.literal 0),
+                              Compiler.CompilationModel.Stmt.ite
+                                ((Compiler.CompilationModel.Expr.literal 3000000000000000000).eq
+                                  (Compiler.CompilationModel.Expr.literal 0))
+                                [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                                [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_24"
+                                    ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_23").sdiv
+                                      (Compiler.CompilationModel.Expr.literal 3000000000000000000))],
+                              Compiler.CompilationModel.Stmt.letVar "thirdTerm_1"
+                                (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_24"),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_25"
+                                ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                                  (Compiler.CompilationModel.Expr.localVar "r_1")),
+                              Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_26"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_25").add
+                                  (Compiler.CompilationModel.Expr.localVar "secondTerm_1")),
+                              Compiler.CompilationModel.Stmt.letVar "expR_1"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_26").add
+                                  (Compiler.CompilationModel.Expr.localVar "thirdTerm_1")),
+                              Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_27"
+                                ((Compiler.CompilationModel.Expr.localVar "q_1").shl
+                                  (Compiler.CompilationModel.Expr.localVar "expR_1"))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_28"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_27"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_29"
+                            ((Compiler.CompilationModel.Expr.literal 1000000000000000000).add
+                              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_28")),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_30"
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29").sub
+                              (Compiler.CompilationModel.Expr.literal 1)),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_31"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+                            [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                            [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_31"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_30").div
+                                  (Compiler.CompilationModel.Expr.literal 2))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_32"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_31"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_33"
+                            ((Compiler.CompilationModel.Expr.literal 1000000000000000000000000000000000000).add
+                              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_32")),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_34"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29").eq
+                              (Compiler.CompilationModel.Expr.literal 0))
+                            [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                            [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_34"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_33").div
+                                  (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_29"))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_35"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_34"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_36"
+                            ((Compiler.CompilationModel.Expr.literal 100000000000).sub
+                              (Compiler.CompilationModel.Expr.literal 1)),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_37"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            ((Compiler.CompilationModel.Expr.literal 2).eq (Compiler.CompilationModel.Expr.literal 0))
+                            [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                            [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_37"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_36").div
+                                  (Compiler.CompilationModel.Expr.literal 2))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_38"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_37"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_39"
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_35").add
+                              (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_38")),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_40"
+                            (Compiler.CompilationModel.Expr.literal 0),
+                          Compiler.CompilationModel.Stmt.ite
+                            ((Compiler.CompilationModel.Expr.literal 100000000000).eq
+                              (Compiler.CompilationModel.Expr.literal 0))
+                            [Compiler.CompilationModel.Stmt.panic Verity.Core.PanicCode.divisionByZero]
+                            [Compiler.CompilationModel.Stmt.assignVar "_verity_slice_tmp_40"
+                                ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_39").div
+                                  (Compiler.CompilationModel.Expr.literal 100000000000))],
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_41"
+                            (Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_40"),
+                          Compiler.CompilationModel.Stmt.letVar "_verity_slice_tmp_42"
+                            ((Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_41").mul
+                              (Compiler.CompilationModel.Expr.literal 100000000000)),
+                          Compiler.CompilationModel.Stmt.returnValues
+                            [Compiler.CompilationModel.Expr.localVar "_verity_slice_tmp_42"]],
+                      localObligations :=
+                        [{ name := "solidity_scalar_abi_entry",
+                            obligation :=
+                              "Raw source scalar and memory-struct words are validated before source execution; calldata-struct fields are validated at their reads. Within this fragment without external calls the fresh EIP-211 returndata buffer stays empty, so failed guards revert with no bytes. The solc-to-model boundary is checked differentially, not proved.",
+                            proofStatus := Compiler.ProofStatus.unchecked }] }],
+                errors := [{ name := "TickOutOfRange", params := [] }] }
+              "wExp") with
+        | Compiler.CompilationModel.Denote.StmtOutcome.stop state => state.observedReturnWords
+        | Compiler.CompilationModel.Denote.StmtOutcome.continue state => state.observedReturnWords
+        | Compiler.CompilationModel.Denote.StmtOutcome.return value state => state.observedReturnWords
+        | Compiler.CompilationModel.Denote.StmtOutcome.revert => none
+        | Compiler.CompilationModel.Denote.StmtOutcome.revertWithData data => none with
+      | some [r0] => some (Verity.Core.Uint256.ofNat r0)
+      | x => none) =
+      some result
+error: Lean exited with code 1
+Some required targets logged failures:
+- Midnight.Probe
+- Midnight.Proof
+error: build failed
