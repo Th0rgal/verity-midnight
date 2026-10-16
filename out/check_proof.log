@@ -1,0 +1,23 @@
+frozen files unchanged (488)
+⚠ [17/63] Replayed Verity.Core
+warning: Verity/Core.lean:766:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1683:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1923:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+✔ [152/159] Built Midnight.TickLibSpec (821ms)
+✔ [153/159] Built Midnight.TickLibPositiveImport (16s)
+✔ [154/159] Built Midnight.Proof (17s)
+✔ [155/159] Built Midnight.TickLibPositiveSpec (3.0s)
+✔ [156/159] Built Midnight (2.9s)
+✔ [157/159] Built Midnight.Import (21s)
+✔ [158/159] Built Midnight.Spec (2.4s)
+Build completed successfully (159 jobs).
+'Midnight.TickLibImport.tickToPriceIsMonotonic' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Midnight.TickLibImport.tickToPriceSucceeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+'tickLib.covered' depends on axioms: [propext]
+EXIT 0
