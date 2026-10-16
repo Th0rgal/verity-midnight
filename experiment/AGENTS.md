@@ -16,6 +16,14 @@ running out of memory, not a Lean error. Run Lean commands through `leanrun`
 (`leanrun Midnight/Lemmas/Foo.lean`, `leanrun lake build X`), which reports
 exit status, peak memory and wall time even when output is piped.
 
+## Scratch files
+
+Keep scratch and probe files under `Midnight/` (for example
+`Midnight/Scratch.lean`), not elsewhere in the workspace; the host reports
+files left outside `Midnight/`. `lake build` builds every module under
+`Midnight/`, so delete scratch modules, or make sure they compile, before
+running `./check/check_proof.sh`.
+
 ## Lean diagnostics MCP (required)
 
 lean-lsp MCP is **required** for this task. Use `lean_diagnostic_messages`,

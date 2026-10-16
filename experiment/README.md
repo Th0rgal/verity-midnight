@@ -38,6 +38,12 @@ A successful call does not underflow the final checked subtractions, so `newCred
 Read `SOLIDITY_IMPORT.md` for how to reason about the imported model without
 exhausting memory; `import ProofKit` provides step lemmas for it.
 
+The specification calls `runFunction` on arbitrary call data, and the imported
+body reads `obligation`, `id` and `user` from it: it starts with an ABI-decoding
+prelude that validates the call data and copies `obligation` to memory (see
+"What the importer generates" in `SOLIDITY_IMPORT.md`).
+`check/UpdatePositionViewSmoke.lean` runs the call on concrete call data.
+
 Import `Compiler.SolidityImport.Proofs` (and `Compiler.SolidityImport.Access`):
   - functionBody <model>.model "<function>" gets the list of statements in the <function>
   - `splitAfter "<localVar>"` slices the body by Solidity local variable names

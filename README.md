@@ -144,7 +144,7 @@ Agents get help with the memory-heavy parts of reasoning about
 
 - `experiment/SOLIDITY_IMPORT.md`: how to run an imported body symbolically
   without exhausting memory. `AGENTS.md` and the task READMEs point to it.
-- `experiment/ProofKit/`: generic step lemmas and a `run_exec` tactic for the
+- `experiment/ProofKit/`: generic step lemmas, signed-word (`int256` ↔ `Int`) lemmas and a `run_exec` tactic for the
   `Denote` interpreter (`import ProofKit`), prebuilt during warm-up. It
   contains nothing specific to a task.
 - Every Lean process in the image runs with `-M $LEAN_MEMORY_MB`, so a runaway
@@ -159,6 +159,23 @@ Agents get help with the memory-heavy parts of reasoning about
 
 These files are frozen like the task files. Runs before they were added had
 none of them, so compare results across that change with care.
+
+## Verity version
+
+The template pins Verity `10f697bb` (2026-10-12), the version that also imports
+`int256` and `TickLib.wExp`'s recursive call. Moving from `9b472a8` changed the
+`updatePositionView` task:
+
+- The importer no longer generates a typed wrapper for
+  `updatePositionView(Market, bytes32, address)`. The body now decodes its
+  arguments from ABI call data (69 statements instead of 28).
+- `Midnight/Spec.lean` therefore states the rule with `runFunction` over any
+  call data, reading `id` and `user` from it. `Requires`, `Asserts` and the
+  storage reads are unchanged. `check/UpdatePositionViewSmoke.lean`, run during
+  warm-up, shows the call succeeds on real ABI input and rejects a bad address.
+
+Results from before the change were proved against the old model and spec, so
+compare them with care.
 
 `lean-lsp-mcp` is installed at `/opt/lean-mcp` in the Dockerfile (pins from
 `experiment/scripts/lean-mcp-requirements.txt`). Helpers match

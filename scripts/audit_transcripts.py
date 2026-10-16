@@ -28,7 +28,7 @@ NETWORK_COMMAND = re.compile(
     r'|\bgh\s+(?:api|repo|search|pr|browse)\b'
 )
 # Verity's own docs name this repository, so a mention alone is not a leak.
-ANSWER_SOURCE = re.compile(r'lfglabs-dev/morpho-midnight-verity|proof-sandbox')
+ANSWER_SOURCE = re.compile(r'lfglabs-dev/morpho-midnight-verity|proof-sandbox|ticklib-monotonicity')
 REFUSED = re.compile(r'refused on filtered domain "([^"]+)"')
 
 

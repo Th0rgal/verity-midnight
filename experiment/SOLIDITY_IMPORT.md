@@ -1,8 +1,10 @@
 # Reasoning about `solidity_import` models
 
-`solidity_import` turns Solidity into a deep `CompilationModel` (`<c>.model`)
-and a typed wrapper per function (`<c>.<fn>`), executed by Verity's `Denote`
-interpreter. Proofs about these models fail mostly for one reason: Lean ends up
+`solidity_import` turns Solidity into a deep `CompilationModel` (`<c>.model`),
+executed by Verity's `Denote` interpreter, and, for functions whose arguments
+are single words, a typed wrapper (`<c>.<fn>`). Other functions are called with
+`runFunction <c>.model "<fn>" world args` and read their arguments from
+`world.calldata`. Proofs about these models fail mostly for one reason: Lean ends up
 *running the interpreter* on a concrete body with symbolic inputs. That makes
 terms grow exponentially and exhausts memory, often after minutes and without
 a clear error. This guide shows how to avoid that.
@@ -11,21 +13,29 @@ a clear error. This guide shows how to avoid that.
 
 - `import ProofKit` (this workspace, prebuilt):
   - `ProofKit/Exec.lean`: step lemmas (`exec_letVar`, `exec_assignVar`,
-    `exec_ite`, `exec_panic`, `exec_returnValues`, `eval_*`), the `andThen`
-    continuation, `exec_append_andThen`, `lookup_bind_same`/`lookup_bind_ne`,
+    `exec_ite`, `exec_panic`, `exec_mstore`, `exec_revertReturndata`,
+    `exec_returnValues`, `eval_*` including `eval_calldataload`, `eval_mload`,
+    the signed `eval_slt`/`eval_sgt`/`eval_sdiv`/`eval_sar`, and `eval_shl`), the `andThen` continuation, `exec_append_andThen`,
+    `lookup_bind_same`/`lookup_bind_ne`, `calldataloadWord_aligned`,
     `runFunction_stop`, and the `run_exec` tactic. If you open both
     `ProofKit` and `Compiler.CompilationModel.SolidityImport`, qualify
     `lookup_bind_same`, which both define.
   - `ProofKit/Words.lean`: `wadd`/`wsub`/`wmul`/`wdiv` and their no-wrap
     lemmas (`wadd_of_lt`, `wsub_of_le`, `wmul_of_lt`, `wdiv_of_lt`,
     `wordNormalize_of_lt`).
+  - `ProofKit/Signed.lean`: signed (`int256`) words as `Int`. `ofI a` is the
+    two's-complement word of `a`; `wadd_ofI`/`wsub_ofI`/`wmul_ofI` make
+    wrapping arithmetic `Int` arithmetic modulo `2^256`, `sdiv_ofI` makes
+    signed division `Int.tdiv`, `toInt_ofI` reads a word back as `int256`
+    (for `eval_slt`/`eval_sgt`), `shl_ofI` turns a small left shift into a
+    power of two, and `wordNormalize_eq` turns literals into `ofI`. For signed
+    code, state the run with `ofI` values and add these lemmas to `run_exec`.
 - Mathlib is prebuilt. `ProofKit` does not import it: import only the tactic
   modules you use, for example `Mathlib.Tactic.IntervalCases`,
   `Mathlib.Tactic.Ring`, `Mathlib.Tactic.NormNum`, `Mathlib.Tactic.Linarith`,
   and `Mathlib.Tactic.DefEqTransformations` (for `beta_reduce`). Importing all
-  of `Mathlib.Tactic`, or `Compiler.SolidityImport.Proofs` (which imports it),
-  costs about 2 GB more memory in every Lean process and MCP worker that
-  loads the file.
+  of `Mathlib.Tactic` costs about 2 GB more memory in every Lean process and
+  MCP worker that loads the file.
 - Verity, under `.lake/packages/verity/Compiler/SolidityImport/`:
   - `Coverage.lean`: `rfl` lemmas for every expression and statement form
     the importer emits (`evalExpr_*_arm`, `execStmt_*_arm`).
@@ -43,6 +53,15 @@ a clear error. This guide shows how to avoid that.
   has many nested guards.
 - A ternary `c ? a : b` becomes `letVar flag c; letVar tmp 0;
   ite flag [assign tmp a] [assign tmp b]`.
+- A function whose arguments include a struct, array or `bytes` starts with
+  an ABI-decoding prelude: it reads arguments with `calldataload` (argument
+  word `i` is at byte `4 + 32 * i`; `calldataloadWord_aligned` turns that into
+  `world.calldata.getD i 0`), validates them (`revertReturndata` on bad
+  input), and copies structs to memory with `mstore`, reading fields back with
+  `mload`. Memory is a function from word addresses: after
+  `mstore a v`, `mload a` reads `v` by `if_pos`/`if_neg`.
+- A failed check (`panic`) ends in `.revertWithData (panicBytes code)`, not
+  `.revert`. `runFunction` maps both to `none`.
 - Inspect a body with `#eval functionBody <c>.model "<fn>"` (write a small
   `Stmt` printer if the default output is too long), and cut it at Solidity
   locals with `splitAfter`.
@@ -79,18 +98,41 @@ a clear error. This guide shows how to avoid that.
    Check the exact form with `#print <c>.<fn>`; argument names and types
    depend on the function.
 
+   For a `Uint256` result, finish with `Uint256.val_ofNat` and
+   `Nat.mod_eq_of_lt` and a bound on the value. `≤` and `<` on `Uint256` are
+   definitionally `≤` and `<` on `.val`, so `show a.val ≤ b.val` moves a goal
+   to `Nat`.
+
 3. **Connect to `runFunction` through `runFunction_stop`.** It holds for any
-   model, so its proof never unfolds `<c>.model`. Prove `hf : <c>.model.fields
-   = []` by `rfl` and `hb : functionBody <c>.model "<fn>" = a ++ b` by
+   model, so its proof never unfolds `<c>.model`. The run starts from
+   `{ world, bindings := args, errors := <c>.model.errors }` with
+   `<c>.model.fields`. Prove `hb : functionBody <c>.model "<fn>" = a ++ b` by
    `(List.take_append_drop k _).symm`. Unfold `<c>.model` only to expose the
    statements of a body, never on a goal that still contains `runFunction`.
 
-4. **Execute with continuation sharing.** `exec_ite` keeps the `if` inside
+4. **Generalize the starting state first.** Executing against a concrete
+   `DenoteState` literal (`{ world, bindings := [...], errors := ... }`) makes
+   definitional checks unfold the record, and they time out at `whnf`. Replace
+   it at once:
+   `generalize hs : ({ world, bindings := [...], errors := _ } : DenoteState) = s at h`,
+   then derive what you need, such as `lookupValue s.bindings "x" = v` or
+   `s.world = world`, by `subst hs; rfl`.
+
+5. **Frame instead of execute** when the property does not need a block's
+   result, or when a later check already bounds it. For example, if a later
+   checked subtraction succeeded, that bounds the value; you need not compute
+   it. Verity's `split_prefix`, `list_frame` and `ends_return`
+   (`Compiler/SolidityImport/Proofs.lean`) step across such a block and keep
+   the bindings it does not modify, without running it. They apply to blocks
+   made only of `letVar`, `assignVar`, `ite` and `panic`; a block that writes
+   memory or storage (such as an ABI-decoding prelude) has to be executed.
+
+6. **Execute with continuation sharing.** `exec_ite` keeps the `if` inside
    `andThen`, so the rest of the body is shared by both branches. Without it,
    every overflow guard doubles the term. Split long bodies with
    `exec_append_andThen` and prove each part in its own lemma.
 
-5. **Keep bindings folded.** Look past other names with `lookup_bind_ne`; its
+7. **Keep bindings folded.** Look past other names with `lookup_bind_ne`; its
    side condition `("a" == "b") = false` is decided by `String.reduceBEq`.
    `run_exec` already discharges side conditions with
    `first | (simp only [String.reduceBEq]; done) | omega`. Reduce numerals in
@@ -98,25 +140,37 @@ a clear error. This guide shows how to avoid that.
    mixing `Nat.reduce*` simprocs into the stepping pass causes heartbeat
    timeouts.
 
-6. **Name intermediate values.** Introduce `Nat` variables with defining
+8. **Name intermediate values.** Introduce `Nat` variables with defining
    equations (`hq : (n + c) / d = q`) and their bounds as hypotheses, and pass
    the equations to `run_exec [hq, ...]`. Terms stay small, and `omega`
    discharges the overflow guards (it treats products as atoms; add product
    bounds with `Nat.mul_le_mul`). Case-split on facts a guard needs (for
    example `Nat.eq_zero_or_pos`) before stepping.
 
-7. **Architecture.** Imported model → step lemmas → one bridge lemma
+9. **When `run_exec` stops early,** find the guard it could not decide. Run it
+   on a prefix of the block (or state the block's result as `.revert` for a
+   moment) and look at the remaining goal with `lean_goal`. The first
+   `andThen` that was not stepped holds the `ite` whose side condition
+   `omega` could not prove. Add the missing fact (a case split such as
+   `Nat.eq_zero_or_pos` before a checked `mul`, or a bound) and run again.
+   Use `run_exec [...] at h` to step a hypothesis instead of the goal.
+
+10. **Architecture.** Imported model → step lemmas → one bridge lemma
    `<c>.<fn> o w x = some (Uint256.ofNat (ref x.val))` for the whole input range
    → all mathematics on a plain-`Nat` reference function `ref`. A "succeeds"
-   property then follows from the bridge directly.
+   property then follows from the bridge directly. To show such a function
+   is monotone, prove the one-step lemma `ref x ≤ ref (x + 1)` and lift it by
+   induction (`monotone_nat_of_le_succ`). For floored terms, bound the change
+   per step instead of reasoning about real functions; at piecewise
+   boundaries, check the values on both sides exactly.
 
-8. **Keep modules small.** Put heavy execution lemmas in separate modules and
+11. **Keep modules small.** Put heavy execution lemmas in separate modules and
    measure each one's peak with `leanrun` before composing them; keep each
    well under the cap. Importing the task's model and `ProofKit` alone takes
    about 1.5–2 GB. Large `simp` proof terms are also stored in the `.olean`,
    so `lake build` can need more memory than the editor did.
 
-9. **Do the numbers first.** Before choosing a proof strategy, evaluate the
+12. **Do the numbers first.** Before choosing a proof strategy, evaluate the
    function at its boundaries and extremes (in Python, or with `#eval` on a
    reference function). Exactly tight points mean a uniform bound will not
    work and exact reasoning is needed there.
@@ -138,6 +192,8 @@ The container has about 15 GB of memory for everything, with no headroom.
   `cmd | head` reports `head`'s status: use `set -o pipefail` or `leanrun`.
 - **Probe risky tactics cheaply** under `set_option maxHeartbeats 20000 in`.
   Kernel checks respect it too, so you get a fast timeout instead of a slow
-  out-of-memory failure.
+  out-of-memory failure. To locate a timeout, close the proof early with
+  `sorry`, inspect the goal with `lean_goal`, and try a few variants at once
+  with `lean_multi_attempt`.
 - **MCP workers** keep up to 2 files open (about 2 GB each). Before a large
   `lake build`, stop working on big files in MCP, so the build has memory.

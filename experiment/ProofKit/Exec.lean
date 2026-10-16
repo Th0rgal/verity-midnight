@@ -40,6 +40,7 @@ def andThen (oracle : DenoteOracle) (fields : List Field) (r : StmtOutcome)
   | .stop next => .stop next
   | .return value next => .return value next
   | .revert => .revert
+  | .revertWithData data => .revertWithData data
 
 section
 variable {oracle : DenoteOracle} {fields : List Field} {s : DenoteState}
@@ -55,6 +56,9 @@ theorem andThen_stop (s' : DenoteState) (rest : List Stmt) :
 
 theorem andThen_return (v : Nat) (s' : DenoteState) (rest : List Stmt) :
     andThen oracle fields (.return v s') rest = .return v s' := rfl
+
+theorem andThen_revertWithData (data : List UInt8) (rest : List Stmt) :
+    andThen oracle fields (.revertWithData data) rest = .revertWithData data := rfl
 
 theorem exec_nil : execStmtList oracle fields s [] = .continue s := by
   rw [execStmtList.eq_1]
@@ -82,8 +86,9 @@ theorem exec_assignVar (name : String) (value : Expr) (rest : List Stmt) :
   rw [exec_cons, execStmt_assignVar_arm]
   cases evalExpr oracle fields s value <;> rfl
 
+/-- A failed checked operation panics: the call reverts with the panic payload. -/
 theorem exec_panic (c : PanicCode) (rest : List Stmt) :
-    execStmtList oracle fields s (.panic c :: rest) = .revert := by
+    execStmtList oracle fields s (.panic c :: rest) = .revertWithData (panicBytes c.toNat) := by
   rw [exec_cons, execStmt_panic_arm]; rfl
 
 /-- The `if` stays inside `andThen`: `rest` appears once, not once per branch. -/
@@ -98,10 +103,28 @@ theorem exec_ite (c : Expr) (t e rest : List Stmt) :
   rw [exec_cons, execStmt_ite_arm]
   cases evalExpr oracle fields s c <;> rfl
 
+/-- ABI decoding failures revert with the (usually empty) return data. -/
+theorem exec_revertReturndata (rest : List Stmt) :
+    execStmtList oracle fields s (.revertReturndata :: rest) =
+      .revertWithData (s.world.returndata.flatMap wordBytes) := by
+  rw [exec_cons, execStmt_revertReturndata_arm]; rfl
+
+/-- `mstore` writes one word of `s.world.memory`. -/
+theorem exec_mstore (offset value : Expr) (rest : List Stmt) :
+    execStmtList oracle fields s (.mstore offset value :: rest) =
+      match evalExpr oracle fields s offset, evalExpr oracle fields s value with
+      | some a, some v => execStmtList oracle fields
+          { s with world := { s.world with
+              memory := fun o => if o = a then v else s.world.memory o } } rest
+      | _, _ => .revert := by
+  rw [exec_cons, execStmt_mstore_arm]
+  cases evalExpr oracle fields s offset <;> cases evalExpr oracle fields s value <;> rfl
+
 theorem exec_returnValues (values : List Expr) (rest : List Stmt) :
     execStmtList oracle fields s (.returnValues values :: rest) =
       match evalExprList oracle fields s values with
-      | some vs => .stop { s with observedReturnWords := some (vs.map wordNormalize) }
+      | some vs => .stop { s with observedReturnWords := some (vs.map wordNormalize),
+                                  observedStop := false }
       | none => .revert := by
   rw [exec_cons, execStmt_returnValues_arm]
   cases evalExprList oracle fields s values <;> rfl
@@ -181,6 +204,63 @@ theorem eval_ge (a b : Expr) :
         (evalExpr oracle fields s b).bind fun y => some (boolWord (decide (y ≤ x))) := by
   simp only [evalExpr]; rfl
 
+theorem eval_calldataload (a : Expr) :
+    evalExpr oracle fields s (.calldataload a) =
+      (evalExpr oracle fields s a).bind fun o =>
+        some (calldataloadWord s.selector s.world.calldata o) := by
+  simp only [evalExpr]; rfl
+
+theorem eval_calldatasize :
+    evalExpr oracle fields s .calldatasize = some s.world.calldataSize.val := by
+  simp only [evalExpr]
+
+theorem eval_mload (a : Expr) :
+    evalExpr oracle fields s (.mload a) =
+      (evalExpr oracle fields s a).bind fun o => some (s.world.memory o).val := by
+  simp only [evalExpr]; rfl
+
+/-- Signed comparison: both words are read as two's-complement `int256`. -/
+theorem eval_slt (a b : Expr) :
+    evalExpr oracle fields s (.slt a b) =
+      (evalExpr oracle fields s a).bind fun x =>
+        (evalExpr oracle fields s b).bind fun y =>
+          some (boolWord (decide ((Int256.ofUint256 (Uint256.ofNat x) : Int) <
+            (Int256.ofUint256 (Uint256.ofNat y) : Int)))) := by
+  simp only [evalExpr]; rfl
+
+/-- Signed division (`sdiv`): both words are read as `int256`; rounds toward zero. -/
+theorem eval_sdiv (a b : Expr) :
+    evalExpr oracle fields s (.sdiv a b) =
+      (evalExpr oracle fields s a).bind fun x =>
+        (evalExpr oracle fields s b).bind fun y =>
+          some (Int256.div (Int256.ofUint256 (Uint256.ofNat x))
+            (Int256.ofUint256 (Uint256.ofNat y))).toUint256.val := by
+  simp only [evalExpr]; rfl
+
+theorem eval_sgt (a b : Expr) :
+    evalExpr oracle fields s (.sgt a b) =
+      (evalExpr oracle fields s a).bind fun x =>
+        (evalExpr oracle fields s b).bind fun y =>
+          some (boolWord (decide ((Int256.ofUint256 (Uint256.ofNat y) : Int) <
+            (Int256.ofUint256 (Uint256.ofNat x) : Int)))) := by
+  simp only [evalExpr]; rfl
+
+/-- `shl shift value`: a shift of 256 or more gives 0. -/
+theorem eval_shl (a b : Expr) :
+    evalExpr oracle fields s (.shl a b) =
+      (evalExpr oracle fields s a).bind fun k =>
+        (evalExpr oracle fields s b).bind fun w =>
+          some (Uint256.shl (Uint256.ofNat k) (Uint256.ofNat w)).val := by
+  simp only [evalExpr]; rfl
+
+theorem eval_sar (a b : Expr) :
+    evalExpr oracle fields s (.sar a b) =
+      (evalExpr oracle fields s a).bind fun x =>
+        (evalExpr oracle fields s b).bind fun y =>
+          some (Int256.sar (Int256.ofUint256 (Uint256.ofNat x))
+            (Int256.ofUint256 (Uint256.ofNat y))).toUint256.val := by
+  simp only [evalExpr]; rfl
+
 theorem eval_logicalNot (a : Expr) :
     evalExpr oracle fields s (.logicalNot a) =
       (evalExpr oracle fields s a).bind fun x => some (boolWord (decide (x = 0))) := by
@@ -227,6 +307,18 @@ theorem lookup_bind_ne (b : Env) (n m : String) (v : Nat) (h : (m == n) = false)
 theorem lookup_single (n : String) (v : Nat) : lookupValue [(n, v)] n = v := by
   simp [lookupValue]
 
+/-! ## Call data -/
+
+/-- A word-aligned `calldataload` reads one call-data word (the selector
+occupies bytes 0–3, so argument word `i` is at byte `4 + 32 * i`). -/
+theorem calldataloadWord_aligned (sel : Nat) (cd : List Nat) (i : Nat) :
+    calldataloadWord sel cd (4 + 32 * i) = cd.getD i 0 % 2 ^ 256 := by
+  unfold calldataloadWord
+  have h1 : (4 + 32 * i = 0) = False := by simp
+  have h2 : (4 + 32 * i < 4) = False := by simp
+  simp only [h1, h2, if_false, Nat.add_sub_cancel_left, Nat.mul_mod_right, if_true,
+    Nat.mul_div_cancel_left _ (by decide : 0 < 32)]
+
 /-! ## Splitting and running a body -/
 
 /-- Split a body; the second part runs only if the first one continues. -/
@@ -244,17 +336,30 @@ theorem exec_append_andThen {oracle : DenoteOracle} {fields : List Field} (s : D
     | stop next => rfl
     | «return» v next => rfl
     | revert => rfl
+    | revertWithData data => rfl
 
-/-- Connect a run of a function body to `runFunction`. State `hb` with the body
-split as you need it (for example `(List.take_append_drop k _).symm`) and prove
-`hf` by `rfl`. Do not unfold the generated `model` with `simp`. -/
+/-- Connect a run of a function body to `runFunction`, for any model. State
+`hb` with the body split as you need it (for example
+`(List.take_append_drop k _).symm`). Do not unfold the generated `model` with
+`simp`. -/
 theorem runFunction_stop (oracle : DenoteOracle) (model : CompilationModel) (fn : String)
     (world : Verity.ContractState) (args : Env) (body : List Stmt) (s' : DenoteState)
-    (hb : functionBody model fn = body) (hf : model.fields = [])
-    (h : execStmtList oracle [] { world, bindings := args } body = .stop s') :
+    (hb : functionBody model fn = body)
+    (h : execStmtList oracle model.fields { world, bindings := args, errors := model.errors }
+      body = .stop s') :
     runFunction oracle model fn world args = s'.observedReturnWords := by
   unfold runFunction
-  rw [hb, hf, h]
+  rw [hb, h]
+
+/-- A run that reverts makes `runFunction` return `none`. -/
+theorem runFunction_revertWithData (oracle : DenoteOracle) (model : CompilationModel)
+    (fn : String) (world : Verity.ContractState) (args : Env) (body : List Stmt)
+    (data : List UInt8) (hb : functionBody model fn = body)
+    (h : execStmtList oracle model.fields { world, bindings := args, errors := model.errors }
+      body = .revertWithData data) :
+    runFunction oracle model fn world args = none := by
+  unfold runFunction
+  rw [hb, h]
 
 /-! ## `run_exec`
 
@@ -262,33 +367,40 @@ theorem runFunction_stop (oracle : DenoteOracle) (model : CompilationModel) (fn 
 conditions (branch guards, no-wrap bounds, distinct names) are discharged by
 `String.reduceBEq` or `omega` from hypotheses in the context, so introduce named
 intermediate values and their bounds first. Pass extra rewrite lemmas, such as
-defining equations of named values, in brackets: `run_exec [hq, hm]`.
+defining equations of named values, in brackets: `run_exec [hq, hm]`. To run
+code inside a hypothesis instead of the goal, add a location, as for `simp`:
+`run_exec [hq] at h`.
 
 Reduce numerals in a separate pass afterwards (for example
 `simp only [Nat.reduceMul, Nat.reduceAdd]`): mixing `Nat.reduce*` simprocs
 into the stepping pass causes heartbeat timeouts. -/
 
-syntax (name := runExec) "run_exec" (" [" Lean.Parser.Tactic.simpLemma,* "]")? : tactic
+syntax (name := runExec) "run_exec" (" [" Lean.Parser.Tactic.simpLemma,* "]")?
+  (Lean.Parser.Tactic.location)? : tactic
 
 macro_rules
-  | `(tactic| run_exec) => `(tactic| run_exec [])
-  | `(tactic| run_exec [$extra,*]) => `(tactic|
+  | `(tactic| run_exec $[$loc]?) => `(tactic| run_exec [] $[$loc]?)
+  | `(tactic| run_exec [$extra,*] $[$loc]?) => `(tactic|
       simp (disch := first | (simp only [String.reduceBEq]; done) | omega) only
         [ProofKit.exec_letVar, ProofKit.exec_assignVar, ProofKit.exec_ite,
          ProofKit.exec_panic, ProofKit.exec_nil, ProofKit.exec_returnValues,
          ProofKit.andThen_continue, ProofKit.andThen_revert, ProofKit.andThen_stop,
-         ProofKit.andThen_return, ProofKit.evalExprList_cons, ProofKit.evalExprList_nil,
+         ProofKit.andThen_return, ProofKit.andThen_revertWithData,
+         ProofKit.evalExprList_cons, ProofKit.evalExprList_nil,
          List.map_cons, List.map_nil,
          ProofKit.eval_literal, ProofKit.eval_param, ProofKit.eval_localVar,
          ProofKit.eval_add, ProofKit.eval_sub, ProofKit.eval_mul, ProofKit.eval_div,
          ProofKit.eval_eq, ProofKit.eval_lt, ProofKit.eval_gt, ProofKit.eval_le,
-         ProofKit.eval_ge, ProofKit.eval_logicalNot, Option.bind_some,
+         ProofKit.eval_ge, ProofKit.eval_logicalNot, ProofKit.eval_calldataload,
+         ProofKit.eval_calldatasize, ProofKit.eval_mload, ProofKit.eval_slt,
+         ProofKit.eval_sgt, ProofKit.eval_sdiv, ProofKit.eval_shl, ProofKit.eval_sar,
+         ProofKit.exec_mstore, ProofKit.exec_revertReturndata, Option.bind_some,
          ProofKit.lookup_bind_same,
          ProofKit.lookup_bind_ne, ProofKit.lookup_single, String.reduceBEq,
          ProofKit.boolWord_ne_zero, decide_eq_true_eq, ProofKit.wordNormalize_of_lt,
          ProofKit.wadd_of_lt, ProofKit.wsub_of_le, ProofKit.wmul_of_lt, ProofKit.wdiv_of_lt,
          if_pos, if_neg, ite_self, Nat.mul_div_cancel_left,
          StmtOutcome.continue.injEq, StmtOutcome.stop.injEq, exists_eq_left',
-         Option.some.injEq, List.cons.injEq, and_true, $extra,*])
+         Option.some.injEq, List.cons.injEq, and_true, $extra,*] $[$loc]?)
 
 end ProofKit

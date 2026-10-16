@@ -22,7 +22,7 @@ AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
 LEAN_MEMORY_MB="${LEAN_MEMORY_MB:-6144}"
 EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
 case "$EXPERIMENT_TASK" in
-  update-position-view|wexp|wexp-positive) ;;
+  update-position-view|wexp|wexp-positive|wexp-original) ;;
   *) echo "Unknown EXPERIMENT_TASK: $EXPERIMENT_TASK" >&2; exit 2 ;;
 esac
 # Second agent using the same backend, journaling progress and a retrospective.
@@ -86,6 +86,9 @@ if [[ "$EXPERIMENT_TASK" == wexp ]]; then
 elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
   python3 scripts/prepare-wexp-positive-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
+elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
+  python3 scripts/prepare-wexp-original-task.py "$RUN_DIR"
+  python3 "$RUN_DIR/check/check_frozen.py" --start
 fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
@@ -125,8 +128,12 @@ docker run --rm \
     elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
       lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs ProofKit
       lake env lean check/TickLibPositiveSmoke.lean
+    elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
+      lake build Midnight.TickLibImportSpec ProofKit
+      lake env lean check/TickLibImportSmoke.lean
     else
       lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs ProofKit
+      lake env lean check/UpdatePositionViewSmoke.lean
     fi
   '
 
@@ -227,6 +234,13 @@ cleanup_agents() {
 }
 trap cleanup_agents EXIT
 
+# Files outside the agent's edit area (Midnight/), to flag leftovers afterwards.
+workspace_files() {
+  (cd "$RUN_DIR" && find . \( -path ./.lake -o -path "./.prover-*" -o -path ./out \
+    -o -path ./Midnight -o -name __pycache__ \) -prune -o -type f -print | sort)
+}
+workspace_files >"$AUDIT_DIR/files-before.txt"
+
 echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $AGENT_TIMEOUT)"
 # shellcheck disable=SC2086
 docker run -d --name "$PROVER_NAME" \
@@ -311,6 +325,13 @@ docker rm -f "$MONITOR_NAME" >/dev/null 2>&1 || true
 docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
 cleanup_egress
 trap - EXIT
+
+workspace_files >"$AUDIT_DIR/files-after.txt"
+comm -13 "$AUDIT_DIR/files-before.txt" "$AUDIT_DIR/files-after.txt" >"$AUDIT_DIR/stray-files.txt"
+if [[ -s "$AUDIT_DIR/stray-files.txt" ]]; then
+  echo "WARNING: the prover left files outside Midnight/ (see $AUDIT_DIR/stray-files.txt):"
+  sed 's/^/  /' "$AUDIT_DIR/stray-files.txt"
+fi
 
 echo "Auditing prover transcripts"
 AUDIT_ARGS=(--backend "$AGENT_BACKEND" --prover-home "$PROVER_HOME" --out "$AUDIT_DIR/audit.md")

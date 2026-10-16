@@ -4,11 +4,17 @@ open Lake DSL
 package «morpho-midnight-verity» where
   version := v!"0.1.0"
 
-require verity from git "https://github.com/lfglabs-dev/verity" @ "9b472a8a48a9990337845f1720a20f374fa1e9cd"
+require verity from git "https://github.com/lfglabs-dev/verity" @ "10f697bbb52dd9273591490137fe20593db56dde"
 
 /-- The Solidity read by `solidity_import`: editing it rebuilds the import. -/
 input_dir midnightSol where
   path := "vendor/midnight/src"
+  filter := .extension "sol"
+  text := true
+
+/-- Morpho's Certora harnesses (`TickLibWrapper.sol`) read by `solidity_import`. -/
+input_dir midnightHarness where
+  path := "vendor/midnight/certora/helpers"
   filter := .extension "sol"
   text := true
 
@@ -25,4 +31,4 @@ lean_lib «ProofKit» where
 @[default_target]
 lean_lib «Midnight» where
   globs := #[.andSubmodules `Midnight]
-  needs := #[midnightSol, positiveTickSol]
+  needs := #[midnightSol, midnightHarness, positiveTickSol]
