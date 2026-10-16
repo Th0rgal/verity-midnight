@@ -62,6 +62,13 @@ bash scripts/claude-login.sh
 CLAUDE_AUTH=login AGENT_BACKEND=claude AGENT_MODEL=claude-opus-5-5 EXPERIMENT_TASK=wexp-positive MONITOR_INTERVAL=1m ./run-experiment.sh
 ```
 
+Before starting the agents, the runner checks that the cached access token
+outlives the run (prover timeout plus retrospective timeout plus 15 minutes). If
+it does not, `scripts/claude-refresh.sh` refreshes it once, with one minimal
+Haiku request, and writes the new login back to the cache. Both agents then
+share a token that does not expire mid-run, so neither refreshes it: a refresh
+rotates the refresh token and would log the other agent out.
+
 Complete the browser sign-in using the URL printed by the login command. If
 the browser callback cannot reach Docker, paste the returned code into that
 terminal. The login cache stays in gitignored `.auth/claude/`; the runner

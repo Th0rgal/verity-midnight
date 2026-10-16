@@ -220,6 +220,15 @@ if [[ "$AGENT_BACKEND" == codex ]]; then
     python3 scripts/codex-auth.py "$CODEX_AUTH_FILE" "$PROVER_HOME" "$MONITOR_HOME"
   fi
 elif [[ "$AGENT_BACKEND" == claude && "$CLAUDE_AUTH" == login ]]; then
+  # Both agents get copies of one login. Make sure its access token outlives the
+  # run, so neither agent refreshes it: a refresh rotates the refresh token and
+  # logs out the other agent (and the host cache).
+  AUTH_LIFETIME_SECS=$(( $(parse_duration_secs "$AGENT_TIMEOUT") \
+    + $(parse_duration_secs "$MONITOR_RETRO_TIMEOUT") + 900 ))
+  if ! python3 scripts/claude-auth.py --min-lifetime "$AUTH_LIFETIME_SECS" "$CLAUDE_AUTH_FILE"; then
+    PLATFORM="$PLATFORM" IMAGE="$IMAGE" bash scripts/claude-refresh.sh \
+      "$CLAUDE_AUTH_FILE" "$AUTH_LIFETIME_SECS"
+  fi
   python3 scripts/claude-auth.py "$CLAUDE_AUTH_FILE" "$PROVER_HOME" "$MONITOR_HOME"
 fi
 MONITOR_STARTED=0
