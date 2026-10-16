@@ -13,11 +13,13 @@ a clear error. This guide shows how to avoid that.
 
 - `import ProofKit` (this workspace, prebuilt):
   - `ProofKit/Exec.lean`: step lemmas (`exec_letVar`, `exec_assignVar`,
-    `exec_ite`, `exec_panic`, `exec_mstore`, `exec_revertReturndata`,
+    `exec_ite`, `exec_panic`, `exec_requireError`, `exec_mstore`,
+    `exec_revertReturndata`,
     `exec_returnValues`, `eval_*` including `eval_calldataload`, `eval_mload`,
     the signed `eval_slt`/`eval_sgt`/`eval_sdiv`/`eval_sar`, and `eval_shl`), the `andThen` continuation, `exec_append_andThen`,
     `lookup_bind_same`/`lookup_bind_ne`, `calldataloadWord_aligned`,
-    `runFunction_stop`, and the `run_exec` tactic. If you open both
+    `runFunction_stop`, `runFunction_revertWithData`,
+    `runFunction_requireFail`, and the `run_exec` tactic. If you open both
     `ProofKit` and `Compiler.CompilationModel.SolidityImport`, qualify
     `lookup_bind_same`, which both define.
   - `ProofKit/Words.lean`: `wadd`/`wsub`/`wmul`/`wdiv` and their no-wrap
@@ -28,8 +30,11 @@ a clear error. This guide shows how to avoid that.
     wrapping arithmetic `Int` arithmetic modulo `2^256`, `sdiv_ofI` makes
     signed division `Int.tdiv`, `toInt_ofI` reads a word back as `int256`
     (for `eval_slt`/`eval_sgt`), `shl_ofI` turns a small left shift into a
-    power of two, and `wordNormalize_eq` turns literals into `ofI`. For signed
-    code, state the run with `ofI` values and add these lemmas to `run_exec`.
+    power of two (`shl_ofI_mul` as an `Int` product), `wordNormalize_eq` turns
+    literals into `ofI`, and `ofI_le_ofI`, `ofI_ne_lit`, `wdiv_ofI` and
+    `tdiv_cases` handle unsigned comparisons, literal tests, unsigned division
+    and truncated division. For signed code, state the run with every word as
+    `ofI a` and step it with `run_sexec`, the signed `run_exec`.
 - Mathlib is prebuilt. `ProofKit` does not import it: import only the tactic
   modules you use, for example `Mathlib.Tactic.IntervalCases`,
   `Mathlib.Tactic.Ring`, `Mathlib.Tactic.NormNum`, `Mathlib.Tactic.Linarith`,
@@ -62,6 +67,10 @@ a clear error. This guide shows how to avoid that.
   `mstore a v`, `mload a` reads `v` by `if_pos`/`if_neg`.
 - A failed check (`panic`) ends in `.revertWithData (panicBytes code)`, not
   `.revert`. `runFunction` maps both to `none`.
+- `require(cond, CustomError(args))` becomes `requireError cond "CustomError"
+  args`. `exec_requireError` (part of `run_exec`) continues when `cond` holds
+  and otherwise ends in `requireFail …`, which `runFunction_requireFail`
+  turns into `none`.
 - Inspect a body with `#eval functionBody <c>.model "<fn>"` (write a small
   `Stmt` printer if the default output is too long), and cut it at Solidity
   locals with `splitAfter`.

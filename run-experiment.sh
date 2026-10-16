@@ -22,7 +22,7 @@ AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
 LEAN_MEMORY_MB="${LEAN_MEMORY_MB:-6144}"
 EXPERIMENT_TASK="${EXPERIMENT_TASK:-update-position-view}"
 case "$EXPERIMENT_TASK" in
-  update-position-view|wexp|wexp-positive|wexp-original) ;;
+  update-position-view|wexp|wexp-positive|wexp-original|ticklib) ;;
   *) echo "Unknown EXPERIMENT_TASK: $EXPERIMENT_TASK" >&2; exit 2 ;;
 esac
 # Second agent using the same backend, journaling progress and a retrospective.
@@ -89,6 +89,9 @@ elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
 elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
   python3 scripts/prepare-wexp-original-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
+elif [[ "$EXPERIMENT_TASK" == ticklib ]]; then
+  python3 scripts/prepare-ticklib-task.py "$RUN_DIR"
+  python3 "$RUN_DIR/check/check_frozen.py" --start
 fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
@@ -131,6 +134,9 @@ docker run --rm \
     elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
       lake build Midnight.TickLibImportSpec ProofKit
       lake env lean check/TickLibImportSmoke.lean
+    elif [[ "$EXPERIMENT_TASK" == ticklib ]]; then
+      lake build Midnight.TickLibFullSpec ProofKit
+      lake env lean check/TickLibFullSmoke.lean
     else
       lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs ProofKit
       lake env lean check/UpdatePositionViewSmoke.lean

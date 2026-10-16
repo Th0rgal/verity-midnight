@@ -1,4 +1,4 @@
-import ProofKit.Words
+import ProofKit.Exec
 
 /-!
 # Signed words as `Int`
@@ -15,6 +15,10 @@ signed (`int256`) code can be stated, and reasoned about, in `Int`:
   zero).
 * `shl_ofI`: a left shift of a small value is multiplication by a power of two.
 * `wordNormalize_eq`: literals (`eval_literal`) as `ofI`.
+* `ofI_le_ofI`, `ofI_ne_lit`, `wdiv_ofI`: unsigned comparisons, literal
+  tests and unsigned division on nonnegative in-range values.
+* `tdiv_cases`: `Int.tdiv` by a positive divisor as `Int` division.
+* `run_sexec`: `run_exec` for signed code, where every word is `ofI a`.
 
 Comparisons (`eval_slt`, `eval_sgt`) read words through
 `Int256.toInt (Int256.ofUint256 (Uint256.ofNat w))`; rewrite those with
@@ -202,5 +206,85 @@ theorem shl_ofI (q e : Int) (hq0 : 0 ≤ q) (hq : q < 256) (he0 : 0 ≤ e) (he :
   unfold Uint256.shl
   simp only [Uint256.val_ofNat, Uint256.modulus, UINT256_MODULUS, Nat.shiftLeft_eq]
   rw [Nat.mod_eq_of_lt (a := q.toNat) (by omega), Nat.mod_eq_of_lt (a := e.toNat) (by omega)]
+
+theorem ofI_ne_lit (a b : Int) (ha0 : 0 ≤ a) (ha : a < 2 ^ 256) (hb0 : 0 ≤ b) (hb : b < 2 ^ 256)
+    (h : a ≠ b) : (ofI a = ofI b) = False := by
+  rw [ofI_eq_iff, Int.emod_eq_of_lt ha0 ha, Int.emod_eq_of_lt hb0 hb]; simp [h]
+
+theorem ofI_le_ofI (a b : Int) (ha0 : 0 ≤ a) (ha : a < 2 ^ 256) (hb0 : 0 ≤ b)
+    (hb : b < 2 ^ 256) : (ofI a ≤ ofI b) = (a ≤ b) := by
+  rw [ofI_of_nonneg a ha0 ha, ofI_of_nonneg b hb0 hb]
+  apply propext; omega
+
+/-- Unsigned division of nonnegative in-range values is `Int` division. -/
+theorem wdiv_ofI (a b : Int) (ha0 : 0 ≤ a) (ha : a < 2 ^ 256) (hb0 : 0 ≤ b)
+    (hb : b < 2 ^ 256) : wdiv (ofI a) (ofI b) = ofI (a / b) := by
+  rw [wdiv_of_lt _ _ (ofI_lt a) (ofI_lt b), ofI_of_nonneg a ha0 ha, ofI_of_nonneg b hb0 hb]
+  have h1 : 0 ≤ a / b := Int.ediv_nonneg ha0 hb0
+  have h2 : a / b ≤ a := Int.ediv_le_self b ha0
+  rw [ofI_of_nonneg _ h1 (by omega)]
+  obtain ⟨a, rfl⟩ := Int.eq_ofNat_of_zero_le ha0
+  obtain ⟨b, rfl⟩ := Int.eq_ofNat_of_zero_le hb0
+  rfl
+
+theorem ofI_cast_ofI (a : Int) : ofI ((ofI a : Nat) : Int) = ofI a := by
+  rw [ofI_natCast _ (ofI_lt a)]
+
+/-- `shl_ofI` with the result as `ofI` of an `Int` product. -/
+theorem shl_ofI_mul (q e : Int) (hq0 : 0 ≤ q) (hq : q < 256) (he0 : 0 ≤ e) (he : e < 2 ^ 256) :
+    (Uint256.shl (Uint256.ofNat (ofI q)) (Uint256.ofNat (ofI e))).val =
+      ofI (e * 2 ^ q.toNat) := by
+  rw [shl_ofI q e hq0 hq he0 he, ← natCast_ofI]
+  congr 1
+  rw [Int.natCast_mul, Int.natCast_pow, Int.toNat_of_nonneg he0]
+  rfl
+
+/-- Truncated division by a positive divisor, as floor division. -/
+theorem tdiv_cases (m b : Int) (_hb : 0 < b) :
+    (m.tdiv b = m / b ∧ 0 ≤ m) ∨ (m.tdiv b = -((-m) / b) ∧ m < 0) := by
+  rcases Int.lt_or_le m 0 with h | h
+  · right; refine ⟨?_, h⟩
+    rw [← Int.tdiv_eq_ediv_of_nonneg (by omega), Int.neg_tdiv, Int.neg_neg]
+  · left; exact ⟨Int.tdiv_eq_ediv_of_nonneg h, h⟩
+
+/-! ## `run_sexec`
+
+`run_exec` for signed code. State the run with every word as `ofI a` for an
+`Int` term `a`: wrapping arithmetic then needs no side condition, and only
+signed comparisons and divisions, shifts and literal tests need range facts,
+which `omega` discharges from hypotheses in the context. Literals become
+`ofI` through `wordNormalize_eq`. Takes extra lemmas and a location like
+`run_exec`. -/
+
+syntax (name := runSExec) "run_sexec" (" [" Lean.Parser.Tactic.simpLemma,* "]")?
+  (Lean.Parser.Tactic.location)? : tactic
+
+macro_rules
+  | `(tactic| run_sexec $[$loc]?) => `(tactic| run_sexec [] $[$loc]?)
+  | `(tactic| run_sexec [$extra,*] $[$loc]?) => `(tactic|
+      simp (disch := first | (simp only [String.reduceBEq]; done) | omega) only
+        [ProofKit.exec_letVar, ProofKit.exec_assignVar, ProofKit.exec_ite,
+         ProofKit.exec_panic, ProofKit.exec_nil, ProofKit.exec_returnValues,
+         ProofKit.exec_requireError,
+         ProofKit.andThen_continue, ProofKit.andThen_revert, ProofKit.andThen_stop,
+         ProofKit.andThen_return, ProofKit.andThen_revertWithData,
+         ProofKit.evalExprList_cons, ProofKit.evalExprList_nil,
+         List.map_cons, List.map_nil,
+         ProofKit.eval_literal, ProofKit.eval_param, ProofKit.eval_localVar,
+         ProofKit.eval_add, ProofKit.eval_sub, ProofKit.eval_mul, ProofKit.eval_div,
+         ProofKit.eval_eq, ProofKit.eval_lt, ProofKit.eval_gt, ProofKit.eval_le,
+         ProofKit.eval_ge, ProofKit.eval_logicalNot,
+         ProofKit.eval_slt, ProofKit.eval_sgt, ProofKit.eval_sdiv, ProofKit.eval_shl,
+         Option.bind_some,
+         ProofKit.lookup_bind_same,
+         ProofKit.lookup_bind_ne, ProofKit.lookup_single, String.reduceBEq,
+         ProofKit.boolWord_ne_zero, decide_eq_true_eq, decide_eq_false_iff_not,
+         ProofKit.wordNormalize_eq, Int.cast_ofNat_Int, Int.natCast_zero, Int.natCast_one,
+         ProofKit.wadd_ofI, ProofKit.wsub_ofI, ProofKit.wmul_ofI, ProofKit.sdiv_ofI,
+         ProofKit.wdiv_ofI, ProofKit.ofI_le_ofI, ProofKit.ofI_cast_ofI,
+         ProofKit.toInt_ofI, ProofKit.shl_ofI_mul, ProofKit.ofI_ne_lit,
+         if_pos, if_neg, ite_self, ite_false, ite_true, not_false_eq_true,
+         StmtOutcome.continue.injEq, StmtOutcome.stop.injEq, exists_eq_left',
+         Option.some.injEq, List.cons.injEq, and_true, $extra,*] $[$loc]?)
 
 end ProofKit

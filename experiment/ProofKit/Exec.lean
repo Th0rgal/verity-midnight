@@ -103,6 +103,37 @@ theorem exec_ite (c : Expr) (t e rest : List Stmt) :
   rw [exec_cons, execStmt_ite_arm]
   cases evalExpr oracle fields s c <;> rfl
 
+/-- What a failing `require(cond, CustomError(args))` returns: the encoded error,
+or a plain revert when its arguments or the error definition cannot be resolved. -/
+def requireFail (oracle : DenoteOracle) (fields : List Field) (s : DenoteState)
+    (name : String) (args : List Expr) : StmtOutcome :=
+  match evalExprList oracle fields s args with
+  | none => .revert
+  | some values => match customErrorBytes oracle s.errors name values with
+      | some bytes => .revertWithData bytes
+      | none => .revert
+
+/-- `require(cond, CustomError(args))`: continue when `cond` holds, otherwise revert. -/
+theorem exec_requireError (c : Expr) (name : String) (args : List Expr) (rest : List Stmt) :
+    execStmtList oracle fields s (.requireError c name args :: rest) =
+      match evalExpr oracle fields s c with
+      | some v => if v != 0 then execStmtList oracle fields s rest
+          else requireFail oracle fields s name args
+      | none => .revert := by
+  rw [exec_cons, execStmt_requireError_arm]
+  cases evalExpr oracle fields s c with
+  | none => rfl
+  | some v =>
+    simp only
+    split
+    · rfl
+    · unfold requireFail
+      cases evalExprList oracle fields s args with
+      | none => rfl
+      | some vs =>
+        simp only
+        cases customErrorBytes oracle s.errors name vs <;> rfl
+
 /-- ABI decoding failures revert with the (usually empty) return data. -/
 theorem exec_revertReturndata (rest : List Stmt) :
     execStmtList oracle fields s (.revertReturndata :: rest) =
@@ -351,6 +382,22 @@ theorem runFunction_stop (oracle : DenoteOracle) (model : CompilationModel) (fn 
   unfold runFunction
   rw [hb, h]
 
+/-- A failing `require` makes `runFunction` return `none`. -/
+theorem runFunction_requireFail (oracle : DenoteOracle) (model : CompilationModel)
+    (fn : String) (world : Verity.ContractState) (args : Env) (name : String)
+    (eargs : List Expr) (s : DenoteState)
+    (h : execStmtList oracle model.fields { world, bindings := args, errors := model.errors }
+      (functionBody model fn) = requireFail oracle model.fields s name eargs) :
+    runFunction oracle model fn world args = none := by
+  unfold runFunction
+  rw [h]
+  unfold requireFail
+  cases evalExprList oracle model.fields s eargs with
+  | none => rfl
+  | some vs =>
+    simp only
+    cases customErrorBytes oracle s.errors name vs <;> rfl
+
 /-- A run that reverts makes `runFunction` return `none`. -/
 theorem runFunction_revertWithData (oracle : DenoteOracle) (model : CompilationModel)
     (fn : String) (world : Verity.ContractState) (args : Env) (body : List Stmt)
@@ -384,6 +431,7 @@ macro_rules
       simp (disch := first | (simp only [String.reduceBEq]; done) | omega) only
         [ProofKit.exec_letVar, ProofKit.exec_assignVar, ProofKit.exec_ite,
          ProofKit.exec_panic, ProofKit.exec_nil, ProofKit.exec_returnValues,
+         ProofKit.exec_requireError,
          ProofKit.andThen_continue, ProofKit.andThen_revert, ProofKit.andThen_stop,
          ProofKit.andThen_return, ProofKit.andThen_revertWithData,
          ProofKit.evalExprList_cons, ProofKit.evalExprList_nil,
