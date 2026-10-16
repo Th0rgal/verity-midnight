@@ -1,0 +1,15 @@
+frozen files unchanged (488)
+⚠ [17/266] Replayed Verity.Core
+warning: Verity/Core.lean:766:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1683:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+warning: Verity/Core.lean:1923:2: try 'simp' instead of 'simpa'
+
+Note: This linter can be disabled with `set_option linter.unnecessarySimpa false`
+Build completed successfully (3059 jobs).
+'Midnight.TickLibImport.wExpIsMonotonic' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Midnight.TickLibImport.wExpSucceeds' depends on axioms: [propext, Classical.choice, Quot.sound]
+'tickLib.covered' depends on axioms: [propext]
