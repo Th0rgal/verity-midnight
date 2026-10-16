@@ -1,5 +1,6 @@
 import Midnight.TickLibImport
 import Compiler.SolidityImport.Proofs
+import Midnight.Lemmas.Word
 
 /-! Step lemmas for symbolically executing the imported `wExp` body. -/
 
@@ -7,6 +8,17 @@ open Compiler.CompilationModel Compiler.CompilationModel.Denote Compiler.Compila
 open Verity.Core
 
 namespace Midnight.TickLibImport.Exec
+open Midnight.TickLibImport.Word
+
+theorem wordNormalize_wd (n : Nat) : wordNormalize n = wd (n : Int) := by
+  show n % 2 ^ 256 = _
+  exact wordNat_eq_wd n
+
+theorem boolWord_ne (p : Prop) [Decidable p] :
+    ((boolWord (decide p) != 0) = true) = p := by
+  unfold boolWord
+  by_cases h : p <;> simp [h]
+
 
 variable {o : DenoteOracle} {fs : List Field} {s : DenoteState}
 
