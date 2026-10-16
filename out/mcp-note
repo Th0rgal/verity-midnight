@@ -1,0 +1,1 @@
+lean-lsp MCP not used; shell-only Lean (lake env lean / lake build), per trial instructions overriding AGENTS.md.
