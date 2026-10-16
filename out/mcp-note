@@ -1,0 +1,1 @@
+shell-only Lean (lake env lean / lake build); no lean-lsp MCP used
