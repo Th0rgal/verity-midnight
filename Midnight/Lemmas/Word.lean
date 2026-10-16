@@ -146,4 +146,27 @@ theorem word_toInt (x : Int256) : x.word.val = wd x.toInt := by
   · unfold wd; norm_num at *; omega
   · unfold wd; norm_num at *; omega
 
+theorem sx_natCast {n : Nat} (h : n < 2 ^ 255) : sx (n : Int) = n :=
+  sx_of_range (by omega) (by exact_mod_cast h)
+
+@[simp] theorem sx_zero : sx 0 = 0 := sx_of_range (by norm_num) (by norm_num)
+
+@[simp] theorem sx_ofNat (n : Nat) [n.AtLeastTwo] (h : n < 2 ^ 255) :
+    sx (OfNat.ofNat n : Int) = OfNat.ofNat n :=
+  sx_natCast h
+
+theorem sdivI_nonneg {a b : Int} (ha : 0 ≤ a) (hb : 0 < b) : sdivI a b = a / b := by
+  unfold sdivI
+  rw [if_neg (by omega), if_pos (by simp; omega)]
+  have h1 : ((a.natAbs : Nat) : Int) = a := Int.natAbs_of_nonneg ha
+  have h2 : ((b.natAbs : Nat) : Int) = b := Int.natAbs_of_nonneg hb.le
+  rw [Int.natCast_div, h1, h2]
+
+theorem sdivI_neg {a b : Int} (ha : a < 0) (hb : 0 < b) : sdivI a b = -((-a) / b) := by
+  unfold sdivI
+  rw [if_neg (by omega), if_neg (by simp; omega)]
+  have h1 : ((a.natAbs : Nat) : Int) = -a := by omega
+  have h2 : ((b.natAbs : Nat) : Int) = b := Int.natAbs_of_nonneg hb.le
+  rw [Int.natCast_div, h1, h2]
+
 end Midnight.TickLibImport.Word

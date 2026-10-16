@@ -14,6 +14,9 @@ theorem wordNormalize_wd (n : Nat) : wordNormalize n = wd (n : Int) := by
   show n % 2 ^ 256 = _
   exact wordNat_eq_wd n
 
+@[simp] theorem lookup_single (n : String) (v : Nat) : lookupValue [(n, v)] n = v := by
+  simp [lookupValue]
+
 theorem boolWord_ne (p : Prop) [Decidable p] :
     ((boolWord (decide p) != 0) = true) = p := by
   unfold boolWord
