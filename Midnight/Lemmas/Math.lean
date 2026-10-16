@@ -126,4 +126,71 @@ theorem posW_mono {y1 y2 : Int} (h0 : 0 ≤ y1) (h12 : y1 ≤ y2) (h2 : y2 ≤ M
     apply eR_mono hr1.1 _ hr2.2
     unfold rOf; rw [heq]; omega
 
+theorem eR_bounds {y : Int} (hy0 : 0 ≤ y) :
+    723831661569835069 ≤ eR (rOf y) ∧ eR (rOf y) ≤ 1447663323139670138 := by
+  have hr := r_bounds hy0
+  constructor
+  · rw [← eR_bot]; exact eR_mono (le_refl _) hr.1 hr.2
+  · rw [← eR_top]; exact eR_mono hr.1 hr.2 (le_refl _)
+
+theorem posW_bounds {y : Int} (hy0 : 0 ≤ y) (hy : y ≤ M) :
+    0 < posW y ∧ posW y ≤ 1447663323139670138 * 2 ^ 24 := by
+  have he := eR_bounds hy0
+  have hq := q_bounds hy0 hy
+  have hp : (2 : Int) ^ (qOf y).toNat ≤ 2 ^ 24 := pow_le_pow_right₀ (by norm_num) (by omega)
+  have hp0 : (0 : Int) < 2 ^ (qOf y).toNat := by positivity
+  rw [posW_eq]
+  constructor
+  · nlinarith
+  · calc eR (rOf y) * 2 ^ (qOf y).toNat ≤ 1447663323139670138 * 2 ^ (qOf y).toNat :=
+          mul_le_mul_of_nonneg_right he.2 hp0.le
+      _ ≤ 1447663323139670138 * 2 ^ 24 := mul_le_mul_of_nonneg_left hp (by norm_num)
+
+theorem posW_zero : posW 0 = 1000000000000000000 := by
+  have hq : qOf 0 = 0 := by rw [q_eq (le_refl _)]; norm_num
+  rw [posW_eq, show rOf 0 = 0 by unfold rOf; rw [hq]; norm_num, hq]
+  rw [eR, tR_pos (le_refl _), sR_eq]; norm_num
+
+theorem div_anti (a b c : Int) (ha : 0 ≤ a) (hb : 0 < b) (hbc : b ≤ c) : a / c ≤ a / b := by
+  rw [Int.le_ediv_iff_mul_le hb]
+  have h0 : 0 ≤ a / c := Int.ediv_nonneg ha (by omega)
+  have h1 : a / c * c ≤ a := Int.ediv_mul_le a (by omega)
+  nlinarith
+
+/-- The integer value returned by the imported `wExp` on the input range. -/
+def wexpI (x : Int) : Int :=
+  if x < 0 then 1000000000000000000000000000000000000 / posW (-x) else posW x
+
+theorem wexpI_mono {x y : Int} (hy : -M ≤ y) (hyx : y < x) (hx : x ≤ M) : wexpI y ≤ wexpI x := by
+  unfold wexpI
+  rcases le_or_gt 0 y with p | n
+  · rw [if_neg (by omega), if_neg (by omega)]; exact posW_mono p hyx.le hx
+  rw [if_pos n]
+  have hb := posW_bounds (by omega : 0 ≤ -y) (by omega)
+  rcases le_or_gt 0 x with px | nx
+  · rw [if_neg (by omega)]
+    have h1 : posW 0 ≤ posW (-y) := posW_mono (le_refl _) (by omega) (by omega)
+    have h2 : posW 0 ≤ posW x := posW_mono (le_refl _) px hx
+    rw [posW_zero] at h1 h2
+    have := div_anti 1000000000000000000000000000000000000 _ _ (by norm_num) (by norm_num) h1
+    norm_num at this
+    omega
+  · rw [if_pos nx]
+    have hbx := posW_bounds (by omega : 0 ≤ -x) (by omega)
+    exact div_anti _ _ _ (by norm_num) hbx.1 (posW_mono (by omega) (by omega) (by omega))
+
+theorem wexpI_bounds {x : Int} (hx0 : -M ≤ x) (hx : x ≤ M) :
+    0 ≤ wexpI x ∧ wexpI x < 2 ^ 255 := by
+  unfold wexpI
+  split_ifs with h
+  · have hb := posW_bounds (by omega : 0 ≤ -x) (by omega)
+    have h1 : posW 0 ≤ posW (-x) := posW_mono (le_refl _) (by omega) (by omega)
+    rw [posW_zero] at h1
+    have := div_anti 1000000000000000000000000000000000000 _ _ (by norm_num) (by norm_num) h1
+    have := Int.ediv_nonneg (show (0:Int) ≤ 1000000000000000000000000000000000000 by norm_num) hb.1.le
+    norm_num at *
+    omega
+  · have hb := posW_bounds (by omega : 0 ≤ x) hx
+    constructor <;> omega
+
 end Midnight.TickLibImport.Math
