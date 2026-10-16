@@ -1,0 +1,1 @@
+lean-lsp-mcp 0.31.0 installed in .lake/lean-mcp and smoke-tested OK; harness cannot add MCP servers mid-session, so it is used via a python client script (/tmp/mcpq.py) plus lake builds.
