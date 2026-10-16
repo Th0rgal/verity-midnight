@@ -5,6 +5,6 @@ open Compiler.CompilationModel.Denote
 namespace Midnight.TickLibImport.Core
 
 theorem chunk14 (o : DenoteOracle) (w : Verity.ContractState) :
-    monoFrom o w 423 5908 0 = true := by kernel_rfl
+    monoFrom o w 101 1400 0 = true := by kernel_rfl
 
 end Midnight.TickLibImport.Core
