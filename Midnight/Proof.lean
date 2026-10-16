@@ -72,6 +72,7 @@ open Midnight.TickLibImport.Core
 
 namespace Midnight.TickLibImport
 
+set_option maxRecDepth 100000 in
 theorem step (o : DenoteOracle) (w : Verity.ContractState) (t : Nat) (ht : t < 6744) :
     ∃ a b, f o w t = some a ∧ f o w (t+1) = some b ∧ a ≤ b := by
   if h0 : t < 100 then
