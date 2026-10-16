@@ -16,7 +16,14 @@ backend allows it, and their transcripts are audited after each run (see
 
 ## Prerequisites
 
-- Docker (on Apple Silicon, the image builds as `linux/amd64`)
+- Docker. The image builds for the host's native platform: `linux/arm64` on
+  Apple Silicon or ARM servers, `linux/amd64` on Intel/AMD (override with
+  `PLATFORM`). solc is the exception: Verity's importer only accepts the
+  official `linux-amd64` binary on Linux, so on `linux/arm64` it runs under
+  amd64 emulation. Docker Desktop provides that with "Use Rosetta for
+  x86_64/amd64 emulation"; on an ARM Linux server, run
+  `docker run --privileged --rm tonistiigi/binfmt --install amd64` once.
+  Warm-up checks that solc runs and says what to do if it does not.
 - An API key for your chosen backend: `CURSOR_API_KEY` for Cursor (default),
   or `CODEX_API_KEY` for Codex (an OpenAI Platform API key). Codex can also
   use an existing ChatGPT sign-in with `CODEX_AUTH=chatgpt`.
@@ -205,7 +212,7 @@ compare them with care.
 | `MONITOR_RETRO_TIMEOUT` | `20m` | Max wait after the prover stops for the retrospective |
 | `EGRESS` | `1` | Set `0` to give agents unrestricted network access (the audit then fails any network command) |
 | `EGRESS_ALLOW_EXTRA` | (empty) | Extra hosts the agents may reach, as space-separated extended regexes on the host name |
-| `PLATFORM` | `linux/amd64` | Docker platform |
+| `PLATFORM` | host's native (`linux/arm64` or `linux/amd64`) | Docker platform of the agent image (`scripts/platform.sh`) |
 | `IMAGE` | `midnight-agent` | Image name |
 
 Codex CLI is pinned to `0.162.0` in the Dockerfile. To change it, update the

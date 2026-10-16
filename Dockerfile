@@ -41,7 +41,7 @@ RUN curl -fsSL https://claude.ai/install.sh -o /tmp/install-claude.sh \
     && rm /tmp/install-claude.sh \
     && claude --version
 
-COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/claude-common.sh scripts/claude-prover.json scripts/egress/tinyproxy.conf /opt/midnight/
+COPY scripts/run-prover.sh scripts/monitor-prover-loop.sh scripts/claude-common.sh scripts/claude-prover.json scripts/egress/tinyproxy.conf scripts/install-solc.py /opt/midnight/
 
 # Cap each Lean process's memory (LEAN_MEMORY_MB, default 6144) so runaway
 # proofs fail with a Lean error instead of an OOM kill; `leanrun` reports

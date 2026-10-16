@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source scripts/agent-backend.sh
 
-PLATFORM="${PLATFORM:-linux/amd64}"
+source scripts/platform.sh
 IMAGE="${IMAGE:-midnight-agent}"
 
 TARGET="${1:-experiment}"

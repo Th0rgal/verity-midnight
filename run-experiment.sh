@@ -14,7 +14,7 @@ elif [[ -z "${!AGENT_KEY_ENV:-}" ]]; then
   exit 2
 fi
 
-PLATFORM="${PLATFORM:-linux/amd64}"
+source scripts/platform.sh
 IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
 # Per-process memory cap (MB) for Lean in the prover container; 0 disables it.
@@ -114,10 +114,10 @@ docker run --rm \
       cp -a /cache/solidity-import/solc-0.8.34 .lake/solidity-import/solc-0.8.34
     fi
     lake exe cache get Mathlib.Tactic
-    if [[ ! -x .lake/solidity-import/solc-0.8.34 ]]; then
-      python3 .lake/packages/verity/scripts/setup_solc_import.py \
-        --output .lake/solidity-import/solc-0.8.34
-    fi
+    # The linux-amd64 solc on every platform (the only Linux build the importer
+    # accepts); on linux/arm64 it runs under amd64 emulation.
+    python3 /opt/midnight/install-solc.py .lake/packages/verity/scripts/setup_solc_import.py \
+      .lake/solidity-import/solc-0.8.34
     lean-lsp-mcp --version
     rm -rf /cache/packages
     cp -a .lake/packages /cache/packages
