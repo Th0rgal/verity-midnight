@@ -2,6 +2,8 @@ import Midnight.Lemmas.Word
 
 /-! The integer function computed by the imported `wExp`, and its monotonicity. -/
 
+set_option linter.unusedSectionVars false
+
 namespace Midnight.TickLibImport.Math
 open Midnight.TickLibImport.Word
 
@@ -192,5 +194,62 @@ theorem wexpI_bounds {x : Int} (hx0 : -M ≤ x) (hx : x ≤ M) :
     omega
   · have hb := posW_bounds (by omega : 0 ≤ x) hx
     constructor <;> omega
+
+/-! ## Facts used to read the model's word arithmetic -/
+
+theorem fold_q (y : Int) : sdivI (y + 322611214989459870) 693147180559945309 = qOf y := rfl
+theorem fold_r (y : Int) : y - qOf y * 693147180559945309 = rOf y := rfl
+theorem fold_s (y : Int) : sdivI (rOf y * rOf y) 2000000000000000000 = sOf y := rfl
+theorem fold_t (y : Int) : sdivI (sOf y * rOf y) 3000000000000000000 = tOf y := rfl
+theorem fold_e (y : Int) : 1000000000000000000 + rOf y + sOf y + tOf y = eOf y := rfl
+theorem fold_p (y : Int) : eOf y * 2 ^ (qOf y).toNat = posW y := rfl
+
+theorem sx_ln2 : sx 693147180559945309 = 693147180559945309 := sx_of_range (by norm_num) (by norm_num)
+theorem sx_2w : sx 2000000000000000000 = 2000000000000000000 := sx_of_range (by norm_num) (by norm_num)
+theorem sx_3w : sx 3000000000000000000 = 3000000000000000000 := sx_of_range (by norm_num) (by norm_num)
+
+section
+variable {y : Int} (hy0 : 0 ≤ y) (hy : y ≤ M)
+include hy0 hy
+
+theorem core_sx1 : sx (y + 322611214989459870) = y + 322611214989459870 := by
+  unfold M at hy; exact sx_of_range (by omega) (by omega)
+
+theorem core_sx2 : sx (rOf y * rOf y) = rOf y * rOf y := by
+  have hr := r_bounds hy0
+  exact sx_of_range (by nlinarith) (by nlinarith)
+
+theorem s_bounds : 0 ≤ sOf y ∧ sOf y ≤ 68648456000000000 := by
+  have hr := r_bounds hy0
+  have h := sR_mul_le (rOf y)
+  have h0 := sR_nonneg (rOf y)
+  change 0 ≤ sR (rOf y) ∧ sR (rOf y) ≤ _
+  constructor
+  · exact h0
+  · nlinarith
+
+theorem core_sx3 : sx (sOf y * rOf y) = sOf y * rOf y := by
+  have hr := r_bounds hy0
+  have hs := s_bounds hy0 hy
+  exact sx_of_range (by nlinarith) (by nlinarith)
+
+theorem core_e : ((wd (eOf y) : Nat) : Int) = eOf y := by
+  have he := eR_bounds hy0
+  rw [wd_cast, eOf_eq]
+  exact Int.emod_eq_of_lt (by omega) (by norm_num; omega)
+
+theorem core_q : wd (qOf y) = (qOf y).toNat := by
+  have hq := q_bounds hy0 hy
+  unfold wd; rw [Int.emod_eq_of_lt (by omega) (by norm_num; omega)]
+
+theorem core_p : ((wd (posW y) : Nat) : Int) = posW y := by
+  have hb := posW_bounds hy0 hy
+  rw [wd_cast]; exact Int.emod_eq_of_lt (by omega) (by norm_num at hb ⊢; omega)
+
+theorem core_p_ne : ¬ posW y % 115792089237316195423570985008687907853269984665640564039457584007913129639936 = 0 := by
+  have hb := posW_bounds hy0 hy
+  rw [Int.emod_eq_of_lt (by omega) (by norm_num at hb ⊢; omega)]; omega
+
+end
 
 end Midnight.TickLibImport.Math
