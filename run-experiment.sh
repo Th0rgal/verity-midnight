@@ -361,6 +361,10 @@ if [[ -s "$AUDIT_DIR/stray-files.txt" ]]; then
   sed 's/^/  /' "$AUDIT_DIR/stray-files.txt"
 fi
 
+if [[ "$EGRESS" != "0" ]]; then
+  docker run --rm --platform "$PLATFORM" --network none -v "$AUDIT_DIR:/egress" "$IMAGE" chmod a+r /egress/tinyproxy.log || true
+fi
+
 echo "Auditing prover transcripts"
 AUDIT_ARGS=(--backend "$AGENT_BACKEND" --prover-home "$PROVER_HOME" --out "$AUDIT_DIR/audit.md")
 if [[ "$EGRESS" != "0" ]]; then
