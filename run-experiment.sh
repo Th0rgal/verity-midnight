@@ -101,10 +101,6 @@ elif [[ "$EXPERIMENT_TASK" == ticklib ]]; then
   python3 scripts/prepare-ticklib-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
 fi
-if [[ "$TURBO_LEAN" == "1" ]]; then
-  cat scripts/turbo-lean-agents.md >> "$RUN_DIR/AGENTS.md"
-fi
-
 docker build --platform "$PLATFORM" -t "$IMAGE" .
 
 echo "Warming Lean deps + solc in $RUN_DIR"

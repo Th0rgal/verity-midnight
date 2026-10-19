@@ -106,6 +106,28 @@ class ClaudeBackendTests(unittest.TestCase):
         args = json.loads(result.stdout)
         self.assertIn('Bash(turbo-lean *)', args[args.index('--allowedTools') + 1])
 
+    def test_run_prover_turbo_prompt_is_opt_in(self):
+        script = (ROOT / 'scripts/run-prover.sh').read_text()
+        script = script.replace(
+            'source /opt/midnight/claude-common.sh',
+            f'source {ROOT / "scripts/claude-common.sh"}')
+        command = ['bash', '-euc',
+                   'claude() { python3 -c "import json, sys; print(json.dumps(sys.argv[1:]))" "$@"; }; '
+                   'tee() { cat; }; source /dev/stdin']
+
+        for setting in (None, '0', '1'):
+            with self.subTest(TURBO_LEAN=setting):
+                env = os.environ.copy()
+                env.update(AGENT_BACKEND='claude', AGENT_MODEL='opus', CLAUDE_AUTH='oauth')
+                env.pop('TURBO_LEAN', None)
+                if setting is not None:
+                    env['TURBO_LEAN'] = setting
+                result = subprocess.run(
+                    command, cwd=ROOT, env=env, input=script, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                prompt = json.loads(result.stdout)[-1]
+                self.assertEqual('turbo-lean check' in prompt, setting == '1')
+
     def test_turbo_lean_check_is_not_a_network_or_answer_lookup_command(self):
         command = 'turbo-lean check ProofKit/Smoke.lean --decl ProofKit.smoke --project-dir .'
         self.assertIsNone(audit.NETWORK_COMMAND.search(command))
