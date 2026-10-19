@@ -71,7 +71,7 @@ RUN set -eux; \
     cargo build --release --locked --manifest-path /opt/turbo-lean/src/Cargo.toml; \
     install -D -m 755 /opt/turbo-lean/src/target/release/turbo-lean /opt/turbo-lean/bin/turbo-lean; \
     cd /opt/turbo-lean/src/lean; \
-    lake build TurboLean turbo-zygote; \
+    lake build TurboLean; \
     rm -rf /root/.cargo /root/.rustup /opt/turbo-lean/src/.git /opt/turbo-lean/src/target \
       /opt/turbo-lean/src/crates /opt/turbo-lean/src/Cargo.toml /opt/turbo-lean/src/Cargo.lock; \
     sed -i '/\.cargo\/env/d' /root/.profile; \

@@ -275,7 +275,7 @@ echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $A
 # shellcheck disable=SC2086
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
-  --shm-size=2g \
+  --tmpfs /dev/shm:rw,exec,nosuid,size=2g \
   $AGENT_NET_ARGS \
   $TURBO_LEAN_DOCKER_ARGS \
   $AGENT_AUTH_ARGS \
