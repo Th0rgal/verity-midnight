@@ -9,9 +9,13 @@ run_claude() {
   # Explicit approvals work as root; bypassPermissions requires a non-root user.
   # Docker and the egress proxy supply isolation. Keep hosted web tools absent.
   # Do not use --bare: it ignores subscription OAuth tokens.
+  local allowed_tools='Bash,Read,Write,Edit,Glob,Grep,mcp__lean-lsp__*'
+  if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
+    allowed_tools="$allowed_tools,Bash(turbo-lean *)"
+  fi
   claude -p --permission-mode dontAsk \
     --tools 'Bash,Read,Write,Edit,Glob,Grep' \
-    --allowedTools 'Bash,Read,Write,Edit,Glob,Grep,mcp__lean-lsp__*' \
+    --allowedTools "$allowed_tools" \
     --disallowedTools 'WebSearch,WebFetch' \
     --setting-sources '' --strict-mcp-config "$@"
 }

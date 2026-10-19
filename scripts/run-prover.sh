@@ -2,6 +2,10 @@
 # Runs inside the isolated Docker container. Docker supplies the sandbox.
 set -euo pipefail
 
+if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
+  export PATH="/opt/turbo-lean/bin:$PATH"
+fi
+
 PROMPT="Prove the theorem requested in README.md. Follow README.md and AGENTS.md. lean-lsp MCP is required — if it is unavailable, write out/mcp-unavailable with a reason and stop immediately (do not continue shell-only). Use lean_diagnostic_messages, lean_goal, lean_hover_info, lean_local_search. Stop when ./check/check_proof.sh exits 0."
 
 case "${AGENT_BACKEND:-cursor}" in

@@ -81,11 +81,14 @@ class ClaudeBackendTests(unittest.TestCase):
 
     def test_wrapper_keeps_oauth_and_approves_lean_tools(self):
         # A shell function captures the exact CLI argv without invoking a model.
-        result = subprocess.run(['bash', '-euc',
+        command = ['bash', '-euc',
             'source scripts/claude-common.sh; '
             'claude() { python3 -c "import json, sys; print(json.dumps(sys.argv[1:]))" "$@"; }; '
-            'run_claude --mcp-config /opt/midnight/claude-prover.json --model opus "test prompt"'],
-            cwd=ROOT, text=True, capture_output=True)
+            'run_claude --mcp-config /opt/midnight/claude-prover.json --model opus "test prompt"']
+        env = os.environ.copy()
+        env['CLAUDE_AUTH'] = 'oauth'
+        env['TURBO_LEAN'] = '0'
+        result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         args = json.loads(result.stdout)
         self.assertEqual(args[-1], 'test prompt')
@@ -93,8 +96,20 @@ class ClaudeBackendTests(unittest.TestCase):
         self.assertNotIn('--dangerously-skip-permissions', args)
         self.assertEqual(args[args.index('--permission-mode') + 1], 'dontAsk')
         self.assertIn('mcp__lean-lsp__*', args[args.index('--allowedTools') + 1])
+        self.assertNotIn('Bash(turbo-lean *)', args[args.index('--allowedTools') + 1])
         self.assertEqual(args[args.index('--disallowedTools') + 1], 'WebSearch,WebFetch')
         self.assertIn('--strict-mcp-config', args)
+
+        env['TURBO_LEAN'] = '1'
+        result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads(result.stdout)
+        self.assertIn('Bash(turbo-lean *)', args[args.index('--allowedTools') + 1])
+
+    def test_turbo_lean_check_is_not_a_network_or_answer_lookup_command(self):
+        command = 'turbo-lean check ProofKit/Smoke.lean --decl ProofKit.smoke --project-dir .'
+        self.assertIsNone(audit.NETWORK_COMMAND.search(command))
+        self.assertIsNone(audit.ANSWER_SOURCE.search(command))
 
 
 if __name__ == '__main__':

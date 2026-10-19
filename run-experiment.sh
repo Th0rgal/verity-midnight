@@ -5,6 +5,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 source scripts/agent-backend.sh
+TURBO_LEAN="${TURBO_LEAN:-0}"
+case "$TURBO_LEAN" in
+  0|1) ;;
+  *) echo "Invalid TURBO_LEAN: $TURBO_LEAN (expected 0 or 1)" >&2; exit 2 ;;
+esac
 if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
   python3 scripts/codex-auth.py "$CODEX_AUTH_FILE"
 elif [[ "$AGENT_BACKEND" == claude && "$CLAUDE_AUTH" == login ]]; then
@@ -37,6 +42,9 @@ EGRESS="${EGRESS:-1}"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$AGENT_BACKEND"
 if [[ "$EXPERIMENT_TASK" != update-position-view ]]; then
   RUN_ID="$RUN_ID-$EXPERIMENT_TASK"
+fi
+if [[ "$TURBO_LEAN" == "1" ]]; then
+  RUN_ID="$RUN_ID-turbo"
 fi
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
@@ -92,6 +100,9 @@ elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
 elif [[ "$EXPERIMENT_TASK" == ticklib ]]; then
   python3 scripts/prepare-ticklib-task.py "$RUN_DIR"
   python3 "$RUN_DIR/check/check_frozen.py" --start
+fi
+if [[ "$TURBO_LEAN" == "1" ]]; then
+  cat scripts/turbo-lean-agents.md >> "$RUN_DIR/AGENTS.md"
 fi
 
 docker build --platform "$PLATFORM" -t "$IMAGE" .
@@ -162,6 +173,10 @@ PROVER_NAME="midnight-prover-$RUN_ID"
 MONITOR_NAME="midnight-monitor-$RUN_ID"
 PROXY_NAME="midnight-egress-$RUN_ID"
 EGRESS_NET="midnight-egress-$RUN_ID"
+TURBO_LEAN_DOCKER_ARGS=""
+if [[ "$TURBO_LEAN" == "1" ]]; then
+  TURBO_LEAN_DOCKER_ARGS="-e TURBO_LEAN=1 -e TURBO_LEAN_HOME=/work/.lake/turbo-lean"
+fi
 mkdir -p "$AUDIT_DIR"
 
 cleanup_egress() {
@@ -260,7 +275,9 @@ echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $A
 # shellcheck disable=SC2086
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
+  --shm-size=2g \
   $AGENT_NET_ARGS \
+  $TURBO_LEAN_DOCKER_ARGS \
   $AGENT_AUTH_ARGS \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
