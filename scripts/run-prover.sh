@@ -4,9 +4,14 @@ set -euo pipefail
 
 PROMPT="Prove the theorem requested in README.md. Follow README.md and AGENTS.md. lean-lsp MCP is required — if it is unavailable, write out/mcp-unavailable with a reason and stop immediately (do not continue shell-only). Use lean_diagnostic_messages, lean_goal, lean_hover_info, lean_local_search. Stop when ./check/check_proof.sh exits 0."
 
-if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
+if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
   export PATH="/opt/turbo-lean/bin:$PATH"
+fi
+
+if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
   PROMPT="$PROMPT turbo-lean is installed for fast Lean checks: to check edits, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` (one declaration) or \`turbo-lean check <File.lean> --project-dir .\` (whole file) instead of \`lake build\` or \`lake env lean\`. Run \`lake build <Module>\` only when a module that other files import has changed. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh is still the final judge."
+elif [[ "${TURBO_LEAN:-0}" == "force" ]]; then
+  PROMPT="$PROMPT In this trial \`lake build\` and \`lake env lean\` are blocked for you. To check edits, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` (one declaration) or \`turbo-lean check <File.lean> --project-dir .\` (whole file). After changing a module that other files import, run \`turbo-lean build --project-dir .\` before checking files that import it. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh (allowed) is still the final judge."
 fi
 
 case "${AGENT_BACKEND:-cursor}" in

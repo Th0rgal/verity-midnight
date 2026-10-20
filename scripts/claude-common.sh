@@ -10,12 +10,16 @@ run_claude() {
   # Docker and the egress proxy supply isolation. Keep hosted web tools absent.
   # Do not use --bare: it ignores subscription OAuth tokens.
   local allowed_tools='Bash,Read,Write,Edit,Glob,Grep,mcp__lean-lsp__*'
-  if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
+  local -a settings_args=()
+  if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
     allowed_tools="$allowed_tools,Bash(turbo-lean *)"
+  fi
+  if [[ "${TURBO_LEAN:-0}" == "force" ]]; then
+    settings_args=(--settings '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"python3 /opt/midnight/turbo-force-hook.py"}]}]}}')
   fi
   claude -p --permission-mode dontAsk \
     --tools 'Bash,Read,Write,Edit,Glob,Grep' \
     --allowedTools "$allowed_tools" \
     --disallowedTools 'WebSearch,WebFetch' \
-    --setting-sources '' --strict-mcp-config "$@"
+    --setting-sources '' "${settings_args[@]}" --strict-mcp-config "$@"
 }

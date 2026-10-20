@@ -7,9 +7,13 @@ cd "$(dirname "$0")"
 source scripts/agent-backend.sh
 TURBO_LEAN="${TURBO_LEAN:-0}"
 case "$TURBO_LEAN" in
-  0|1) ;;
-  *) echo "Invalid TURBO_LEAN: $TURBO_LEAN (expected 0 or 1)" >&2; exit 2 ;;
+  0|1|force) ;;
+  *) echo "Invalid TURBO_LEAN: $TURBO_LEAN (expected 0, 1 or force)" >&2; exit 2 ;;
 esac
+if [[ "$TURBO_LEAN" == "force" && "$AGENT_BACKEND" != "claude" ]]; then
+  printf '%s\n' 'TURBO_LEAN=force requires AGENT_BACKEND=claude' >&2
+  exit 2
+fi
 if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
   python3 scripts/codex-auth.py "$CODEX_AUTH_FILE"
 elif [[ "$AGENT_BACKEND" == claude && "$CLAUDE_AUTH" == login ]]; then
@@ -43,9 +47,10 @@ RUN_ID="$(date +%Y%m%d-%H%M%S)-$AGENT_BACKEND"
 if [[ "$EXPERIMENT_TASK" != update-position-view ]]; then
   RUN_ID="$RUN_ID-$EXPERIMENT_TASK"
 fi
-if [[ "$TURBO_LEAN" == "1" ]]; then
-  RUN_ID="$RUN_ID-turbo"
-fi
+case "$TURBO_LEAN" in
+  1) RUN_ID="$RUN_ID-turbo" ;;
+  force) RUN_ID="$RUN_ID-turbo-force" ;;
+esac
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
 # Monitor state is outside the prover workspace so the prover cannot see or
@@ -170,9 +175,9 @@ MONITOR_NAME="midnight-monitor-$RUN_ID"
 PROXY_NAME="midnight-egress-$RUN_ID"
 EGRESS_NET="midnight-egress-$RUN_ID"
 TURBO_LEAN_DOCKER_ARGS=""
-if [[ "$TURBO_LEAN" == "1" ]]; then
-  TURBO_LEAN_DOCKER_ARGS="-e TURBO_LEAN=1 -e TURBO_LEAN_HOME=/work/.lake/turbo-lean"
-fi
+case "$TURBO_LEAN" in
+  1|force) TURBO_LEAN_DOCKER_ARGS="-e TURBO_LEAN=$TURBO_LEAN -e TURBO_LEAN_HOME=/work/.lake/turbo-lean" ;;
+esac
 mkdir -p "$AUDIT_DIR"
 
 cleanup_egress() {
