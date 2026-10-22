@@ -26,6 +26,12 @@ fi
 source scripts/platform.sh
 IMAGE="${IMAGE:-midnight-agent}"
 AGENT_TIMEOUT="${AGENT_TIMEOUT:-120m}"
+# Optional Docker memory cap for the prover container (e.g. 10g); empty uses host default.
+PROVER_MEMORY_LIMIT="${PROVER_MEMORY_LIMIT:-}"
+PROVER_MEM_ARGS=""
+if [[ -n "$PROVER_MEMORY_LIMIT" ]]; then
+  PROVER_MEM_ARGS="--memory=$PROVER_MEMORY_LIMIT --memory-swap=$PROVER_MEMORY_LIMIT"
+fi
 # Per-process memory cap (MB) for Lean in the prover container; 0 disables it.
 # Warm-up and the final checker run without the cap.
 LEAN_MEMORY_MB="${LEAN_MEMORY_MB:-6144}"
@@ -167,6 +173,10 @@ docker run --rm \
       if [[ -n "$WARM_SMOKE" ]]; then
         turbo-lean check "$WARM_SMOKE" --project-dir .
       fi
+      if [[ -f Midnight/Proof.lean ]]; then
+        turbo-lean check Midnight/Proof.lean --project-dir . || true
+      fi
+      turbo-lean gc --project-dir . >/dev/null 2>&1 || true
     fi
   '
 
@@ -292,6 +302,7 @@ echo "Starting $AGENT_BACKEND prover on $RUN_DIR (model $AGENT_MODEL, timeout $A
 docker run -d --name "$PROVER_NAME" \
   --platform "$PLATFORM" \
   --tmpfs /dev/shm:rw,exec,nosuid,size=2g \
+  $PROVER_MEM_ARGS \
   $AGENT_NET_ARGS \
   $TURBO_LEAN_DOCKER_ARGS \
   $AGENT_AUTH_ARGS \

@@ -6,6 +6,8 @@ PROMPT="Prove the theorem requested in README.md. Follow README.md and AGENTS.md
 
 if [[ "${TURBO_LEAN:-0}" =~ ^(1|force|hard)$ ]]; then
   export PATH="/opt/turbo-lean/bin:$PATH"
+  export TURBO_LEAN_MAX_IDLE_ZYGOTES="${TURBO_LEAN_MAX_IDLE_ZYGOTES:-2}"
+  export TURBO_LEAN_MAX_ZYGOTE_PROCESSES="${TURBO_LEAN_MAX_ZYGOTE_PROCESSES:-3}"
   if [[ -z "${TURBO_LEAN_SKIP_WARMUP:-}" && -d .lake ]]; then
     case "${EXPERIMENT_TASK:-update-position-view}" in
       wexp) WARM_SMOKE="Midnight/Proof.lean" ;;
@@ -14,9 +16,11 @@ if [[ "${TURBO_LEAN:-0}" =~ ^(1|force|hard)$ ]]; then
       ticklib) WARM_SMOKE="check/TickLibFullSmoke.lean" ;;
       *) WARM_SMOKE="check/UpdatePositionViewSmoke.lean" ;;
     esac
-    if [[ -f "$WARM_SMOKE" ]]; then
-      LEAN_MEMORY_MB=0 turbo-lean check "$WARM_SMOKE" --project-dir . >/dev/null 2>&1 || true
-    fi
+    for warm_target in "$WARM_SMOKE" "Midnight/Proof.lean"; do
+      if [[ -f "$warm_target" ]]; then
+        LEAN_MEMORY_MB=0 turbo-lean check "$warm_target" --project-dir . >/dev/null 2>&1 || true
+      fi
+    done
   fi
 fi
 

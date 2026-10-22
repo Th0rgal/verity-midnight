@@ -57,7 +57,7 @@ RUN set -eux; \
 
 WORKDIR /work
 
-ARG TURBO_LEAN_REF=2922fa595b9c988d7cea5d17a584f240bbc6fa73
+ARG TURBO_LEAN_REF=68fd45b109d67e659f8f14493eb580660adabb68
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends build-essential; \
@@ -68,10 +68,10 @@ RUN set -eux; \
     export PATH="/root/.cargo/bin:$PATH"; \
     git clone https://github.com/Th0rgal/turbo-lean.git /opt/turbo-lean/src; \
     git -C /opt/turbo-lean/src checkout --detach "$TURBO_LEAN_REF"; \
-    cargo build --release --locked --manifest-path /opt/turbo-lean/src/Cargo.toml; \
-    install -D -m 755 /opt/turbo-lean/src/target/release/turbo-lean /opt/turbo-lean/bin/turbo-lean; \
     cd /opt/turbo-lean/src/lean; \
     lake build TurboLean; \
+    cargo build --release --locked --manifest-path /opt/turbo-lean/src/Cargo.toml; \
+    install -D -m 755 /opt/turbo-lean/src/target/release/turbo-lean /opt/turbo-lean/bin/turbo-lean; \
     rm -rf /root/.cargo /root/.rustup /opt/turbo-lean/src/.git /opt/turbo-lean/src/target \
       /opt/turbo-lean/src/crates /opt/turbo-lean/src/Cargo.toml /opt/turbo-lean/src/Cargo.lock; \
     sed -i '/\.cargo\/env/d' /root/.profile; \
