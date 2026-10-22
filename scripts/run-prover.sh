@@ -6,12 +6,24 @@ PROMPT="Prove the theorem requested in README.md. Follow README.md and AGENTS.md
 
 if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
   export PATH="/opt/turbo-lean/bin:$PATH"
+  if [[ -z "${TURBO_LEAN_SKIP_WARMUP:-}" && -d .lake ]]; then
+    case "${EXPERIMENT_TASK:-update-position-view}" in
+      wexp) WARM_SMOKE="Midnight/Proof.lean" ;;
+      wexp-positive) WARM_SMOKE="check/TickLibPositiveSmoke.lean" ;;
+      wexp-original) WARM_SMOKE="check/TickLibImportSmoke.lean" ;;
+      ticklib) WARM_SMOKE="check/TickLibFullSmoke.lean" ;;
+      *) WARM_SMOKE="check/UpdatePositionViewSmoke.lean" ;;
+    esac
+    if [[ -f "$WARM_SMOKE" ]]; then
+      LEAN_MEMORY_MB=0 turbo-lean check "$WARM_SMOKE" --project-dir . >/dev/null 2>&1 || true
+    fi
+  fi
 fi
 
 if [[ "${TURBO_LEAN:-0}" == "1" ]]; then
-  PROMPT="$PROMPT turbo-lean is installed for fast Lean checks: to check edits, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` (one declaration) or \`turbo-lean check <File.lean> --project-dir .\` (whole file) instead of \`lake build\` or \`lake env lean\`. Run \`lake build <Module>\` only when a module that other files import has changed. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh is still the final judge."
+  PROMPT="$PROMPT turbo-lean is installed for fast single-declaration checks: while iterating on a lemma or theorem, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` instead of \`lake build\`, \`lake env lean\`, or \`leanrun <File.lean>\` (prefer \`--decl <name>\` over whole-file \`turbo-lean check <File.lean>\` while the file still has broken or \`sorry\` declarations). Run \`lake build <Module>\` only when a module that other files import has changed. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh is still the final judge."
 elif [[ "${TURBO_LEAN:-0}" == "force" ]]; then
-  PROMPT="$PROMPT In this trial \`lake build\` and \`lake env lean\` are blocked for you. To check edits, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` (one declaration) or \`turbo-lean check <File.lean> --project-dir .\` (whole file). After changing a module that other files import, run \`turbo-lean build --project-dir .\` before checking files that import it. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh (allowed) is still the final judge."
+  PROMPT="$PROMPT In this trial \`lake build\`, \`lake env lean\`, and \`leanrun <File.lean>\` are blocked for you. To check edits, run \`turbo-lean check <File.lean> --decl <name> --project-dir .\` for the specific declaration you are editing (prefer \`--decl <name>\` over whole-file \`turbo-lean check <File.lean>\` while the file still has broken or \`sorry\` declarations). After changing a module that other files import, run \`turbo-lean build <Module> --project-dir .\` (for example \`turbo-lean build Midnight.Lemmas.Foo --project-dir .\`, not an unscoped \`turbo-lean build\`) before checking files that import it. lean-lsp MCP is still required for goals, diagnostics and search, and ./check/check_proof.sh (allowed) is still the final judge."
 fi
 
 case "${AGENT_BACKEND:-cursor}" in

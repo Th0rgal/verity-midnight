@@ -114,6 +114,8 @@ docker run --rm \
   -v "$RUN_DIR:/work" \
   -v "$CACHE_DIR:/cache" \
   -e EXPERIMENT_TASK="$EXPERIMENT_TASK" \
+  -e TURBO_LEAN="$TURBO_LEAN" \
+  -e TURBO_LEAN_HOME=/work/.lake/turbo-lean \
   -e LEAN_MEMORY_MB=0 \
   -w /work \
   "$IMAGE" \
@@ -140,18 +142,30 @@ docker run --rm \
     cp -a .lake/solidity-import/solc-0.8.34 /cache/solidity-import/solc-0.8.34
     if [[ "$EXPERIMENT_TASK" == wexp ]]; then
       lake build Midnight.TickLibSpec
+      WARM_SMOKE=""
     elif [[ "$EXPERIMENT_TASK" == wexp-positive ]]; then
       lake build Midnight.TickLibPositiveSpec Compiler.SolidityImport.Proofs ProofKit
       lake env lean check/TickLibPositiveSmoke.lean
+      WARM_SMOKE="check/TickLibPositiveSmoke.lean"
     elif [[ "$EXPERIMENT_TASK" == wexp-original ]]; then
       lake build Midnight.TickLibImportSpec ProofKit
       lake env lean check/TickLibImportSmoke.lean
+      WARM_SMOKE="check/TickLibImportSmoke.lean"
     elif [[ "$EXPERIMENT_TASK" == ticklib ]]; then
       lake build Midnight.TickLibFullSpec ProofKit
       lake env lean check/TickLibFullSmoke.lean
+      WARM_SMOKE="check/TickLibFullSmoke.lean"
     else
       lake build Midnight.Import Midnight.Spec Compiler.SolidityImport.Proofs ProofKit
       lake env lean check/UpdatePositionViewSmoke.lean
+      WARM_SMOKE="check/UpdatePositionViewSmoke.lean"
+    fi
+    if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
+      export PATH="/opt/turbo-lean/bin:$PATH"
+      turbo-lean seed-shards --project-dir . --require-olean
+      if [[ -n "$WARM_SMOKE" ]]; then
+        turbo-lean check "$WARM_SMOKE" --project-dir .
+      fi
     fi
   '
 
@@ -283,6 +297,7 @@ docker run -d --name "$PROVER_NAME" \
   -e AGENT_BACKEND="$AGENT_BACKEND" \
   -e AGENT_MODEL="$AGENT_MODEL" \
   -e AGENT_REASONING_EFFORT="$AGENT_REASONING_EFFORT" \
+  -e EXPERIMENT_TASK="$EXPERIMENT_TASK" \
   -e LEAN_MEMORY_MB="$LEAN_MEMORY_MB" \
   -v "$RUN_DIR:/work" \
   -v "$PROVER_HOME:$AGENT_HOME_MOUNT" \

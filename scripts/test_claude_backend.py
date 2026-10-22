@@ -157,22 +157,31 @@ class ClaudeBackendTests(unittest.TestCase):
                 prompt = json.loads(result.stdout)[-1]
                 self.assertEqual('turbo-lean check' in prompt, setting in ('1', 'force'))
                 self.assertEqual('are blocked for you' in prompt, setting == 'force')
+                if setting == 'force':
+                    self.assertIn('turbo-lean build <Module> --project-dir .', prompt)
+                    self.assertNotIn('run `turbo-lean build --project-dir .`', prompt)
 
     def test_turbo_force_hook_blocks_lake_commands(self):
         hook = ROOT / 'scripts/turbo-force-hook.py'
-        message = ('Blocked in this trial: lake build / lake env lean are disabled. '
-                   'Check edits with turbo-lean check <File.lean> [--decl <name>] --project-dir . ; '
-                   './check/check_proof.sh is allowed.')
+        message = (
+            'Blocked in this trial: lake build / lake env lean / leanrun <File.lean> are disabled. '
+            'Check one declaration with turbo-lean check <File.lean> --decl <name> --project-dir . '
+            'or rebuild an imported module with turbo-lean build <Module> --project-dir . ; '
+            './check/check_proof.sh is allowed.'
+        )
         blocked = (
             'lake build Midnight.Proof',
             'cd /work && leanrun lake build Midnight.Lemmas.X 2>&1 | tail',
             'timeout 60 lake env lean Midnight/Proof.lean',
             'lake -d . build',
+            'leanrun Midnight/Proof.lean',
+            'cd /work && leanrun Midnight/Lemmas/Foo.lean 2>&1 | tail',
         )
         allowed = (
             './check/check_proof.sh',
             'leanrun ./check/check_proof.sh 2>&1 | tail -20',
-            'turbo-lean check Midnight/Proof.lean --project-dir .',
+            'turbo-lean check Midnight/Proof.lean --decl Midnight.wExpIsMonotonic --project-dir .',
+            'turbo-lean build Midnight.Lemmas.Foo --project-dir .',
             'cat check/check_proof.sh',
         )
         for command in blocked:
