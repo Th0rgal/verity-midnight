@@ -216,7 +216,7 @@ compare them with care.
 | `MONITOR_REASONING_EFFORT` | `$AGENT_REASONING_EFFORT` | Codex or Claude monitor reasoning effort |
 | `AGENT_TIMEOUT` | `120m` | Cap on the prover agent step only (`timeout(1)` inside the container) |
 | `LEAN_MEMORY_MB` | `6144` | Per-process Lean memory cap (`lean -M`) in the prover container; `0` disables it. Warm-up and the final checker run uncapped |
-| `TURBO_LEAN` | `0` | Set `1` for quick `turbo-lean check <File.lean> --decl <name> --project-dir .` checks, or `force` for a Claude-only arm whose hook blocks `lake build`, `lake env lean`, and `leanrun <File.lean>`; compare `force` separately from `1`. lean-lsp MCP and the final checker remain required |
+| `TURBO_LEAN` | `0` | `1` offers `turbo-lean check <File.lean> --decl <name> --project-dir .`; `force` (Claude-only) blocks `lake build`/`lake env lean`/`leanrun <File.lean>` via hook but keeps lean-lsp MCP and `check_proof.sh`; `hard` (Claude-only) removes MCP entirely and blocks all shell Lean (`lake`, `lean`, `leanrun`, `elan`) and the check scripts — turbo-lean is the only compiler feedback. Compare the arms separately |
 | `MONITOR` | `1` | Set `0` to disable the sidecar progress agent |
 | `MONITOR_MODEL` | `$AGENT_MODEL` | Model for the monitor / retrospective agent |
 | `MONITOR_INTERVAL` | `2m` | How often the monitor journals (`30s` / `2m` / `1h`) |

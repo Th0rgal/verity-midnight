@@ -11,10 +11,12 @@ run_claude() {
   # Do not use --bare: it ignores subscription OAuth tokens.
   local allowed_tools='Bash,Read,Write,Edit,Glob,Grep,mcp__lean-lsp__*'
   local -a settings_args=()
-  if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
-    allowed_tools="$allowed_tools,Bash(turbo-lean *)"
-  fi
-  if [[ "${TURBO_LEAN:-0}" == "force" ]]; then
+  case "${TURBO_LEAN:-0}" in
+    1|force) allowed_tools="$allowed_tools,Bash(turbo-lean *)" ;;
+    # hard: no lean-lsp tools at all — turbo-lean is the only checker.
+    hard) allowed_tools='Bash,Read,Write,Edit,Glob,Grep,Bash(turbo-lean *)' ;;
+  esac
+  if [[ "${TURBO_LEAN:-0}" =~ ^(force|hard)$ ]]; then
     settings_args=(--settings '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"python3 /opt/midnight/turbo-force-hook.py"}]}]}}')
   fi
   claude -p --permission-mode dontAsk \

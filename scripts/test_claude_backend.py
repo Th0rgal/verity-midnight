@@ -66,12 +66,17 @@ class ClaudeBackendTests(unittest.TestCase):
                 self.assertEqual(self.backend(**settings).returncode, 2)
 
     def test_force_requires_claude_backend(self):
-        env = os.environ.copy()
-        env.update(AGENT_BACKEND='codex', CODEX_AUTH='api-key', TURBO_LEAN='force')
-        result = subprocess.run(
-            ['bash', 'run-experiment.sh'], cwd=ROOT, env=env, text=True, capture_output=True)
-        self.assertEqual(result.returncode, 2)
-        self.assertEqual(result.stderr.strip(), 'TURBO_LEAN=force requires AGENT_BACKEND=claude')
+        for setting in ('force', 'hard'):
+            with self.subTest(TURBO_LEAN=setting):
+                env = os.environ.copy()
+                env.update(AGENT_BACKEND='codex', CODEX_AUTH='api-key', TURBO_LEAN=setting)
+                result = subprocess.run(
+                    ['bash', 'run-experiment.sh'], cwd=ROOT, env=env, text=True,
+                    capture_output=True)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(
+                    result.stderr.strip(),
+                    f'TURBO_LEAN={setting} requires AGENT_BACKEND=claude')
 
     def test_web_audit_checks_calls_instead_of_advertisements(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -135,6 +140,15 @@ class ClaudeBackendTests(unittest.TestCase):
         )
         self.assertEqual(args[args.index('--setting-sources') + 1], '')
 
+        env['TURBO_LEAN'] = 'hard'
+        result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads(result.stdout)
+        allowed = args[args.index('--allowedTools') + 1]
+        self.assertIn('Bash(turbo-lean *)', allowed)
+        self.assertNotIn('mcp__lean-lsp__', allowed)
+        self.assertIn('--settings', args)
+
     def test_run_prover_turbo_prompt_is_opt_in(self):
         script = (ROOT / 'scripts/run-prover.sh').read_text()
         script = script.replace(
@@ -144,7 +158,7 @@ class ClaudeBackendTests(unittest.TestCase):
                    'claude() { python3 -c "import json, sys; print(json.dumps(sys.argv[1:]))" "$@"; }; '
                    'tee() { cat; }; source /dev/stdin']
 
-        for setting in (None, '0', '1', 'force'):
+        for setting in (None, '0', '1', 'force', 'hard'):
             with self.subTest(TURBO_LEAN=setting):
                 env = os.environ.copy()
                 env.update(AGENT_BACKEND='claude', AGENT_MODEL='opus', CLAUDE_AUTH='oauth')
@@ -154,12 +168,21 @@ class ClaudeBackendTests(unittest.TestCase):
                 result = subprocess.run(
                     command, cwd=ROOT, env=env, input=script, text=True, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                prompt = json.loads(result.stdout)[-1]
-                self.assertEqual('turbo-lean check' in prompt, setting in ('1', 'force'))
-                self.assertEqual('are blocked for you' in prompt, setting == 'force')
-                if setting == 'force':
+                args = json.loads(result.stdout)
+                prompt = args[-1]
+                self.assertEqual('turbo-lean check' in prompt, setting in ('1', 'force', 'hard'))
+                self.assertEqual('are blocked for you' in prompt, setting in ('force', 'hard'))
+                if setting in ('force', 'hard'):
                     self.assertIn('turbo-lean build <Module> --project-dir .', prompt)
                     self.assertNotIn('run `turbo-lean build --project-dir .`', prompt)
+                if setting == 'hard':
+                    self.assertIn('no MCP on purpose', prompt)
+                    self.assertNotIn('lean-lsp MCP is required', prompt)
+                    self.assertIn('{"mcpServers":{}}',
+                                  args[args.index('--mcp-config') + 1])
+                else:
+                    self.assertEqual('/opt/midnight/claude-prover.json',
+                                     args[args.index('--mcp-config') + 1])
 
     def test_turbo_force_hook_blocks_lake_commands(self):
         hook = ROOT / 'scripts/turbo-force-hook.py'
@@ -199,6 +222,52 @@ class ClaudeBackendTests(unittest.TestCase):
                     [sys.executable, str(hook)],
                     input=json.dumps({'tool_input': {'command': command}}),
                     text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stderr, '')
+
+    def test_turbo_hard_hook_blocks_all_lean(self):
+        hook = ROOT / 'scripts/turbo-force-hook.py'
+        env = dict(os.environ, TURBO_LEAN='hard')
+
+        def run(command):
+            return subprocess.run(
+                [sys.executable, str(hook)], env=env,
+                input=json.dumps({'tool_input': {'command': command}}),
+                text=True, capture_output=True)
+
+        blocked = (
+            'lake build Midnight.Proof',
+            'lean Midnight/Proof.lean',
+            'cd /work && leanrun Midnight/Lemmas/Foo.lean 2>&1 | tail',
+            'leanrun ./check/check_proof.sh',
+            'elan default leanprover/lean4:v4.31.0',
+            'LEAN_MEMORY_MB=0 lake env lean Midnight/Proof.lean',
+            'env LEAN_MEMORY_MB=0 lean Midnight/Proof.lean',
+            'timeout 60 lake build Midnight',
+            'bash -c "lake build"',
+            'sh -c "lean Foo.lean" | tail',
+            './check/check_proof.sh',
+            'bash check/check_proof.sh',
+            'python3 check/check_frozen.py --start',
+            '/root/.elan/bin/lean Foo.lean',
+        )
+        allowed = (
+            'turbo-lean check Midnight/Proof.lean --decl Midnight.wExpIsMonotonic --project-dir .',
+            'turbo-lean build Midnight.Lemmas.Foo --project-dir .',
+            'cat check/Goal.lean',
+            'grep -rn "lakefile" README.md',
+            'grep -rn lean Midnight/',
+            'cd /work && python3 - <<\'EOF\'\nprint("lean")\nEOF',
+            'ls .lake/packages',
+        )
+        for command in blocked:
+            with self.subTest(command=command):
+                result = run(command)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('turbo-lean check', result.stderr)
+        for command in allowed:
+            with self.subTest(command=command):
+                result = run(command)
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stderr, '')
 

@@ -7,11 +7,11 @@ cd "$(dirname "$0")"
 source scripts/agent-backend.sh
 TURBO_LEAN="${TURBO_LEAN:-0}"
 case "$TURBO_LEAN" in
-  0|1|force) ;;
-  *) echo "Invalid TURBO_LEAN: $TURBO_LEAN (expected 0, 1 or force)" >&2; exit 2 ;;
+  0|1|force|hard) ;;
+  *) echo "Invalid TURBO_LEAN: $TURBO_LEAN (expected 0, 1, force or hard)" >&2; exit 2 ;;
 esac
-if [[ "$TURBO_LEAN" == "force" && "$AGENT_BACKEND" != "claude" ]]; then
-  printf '%s\n' 'TURBO_LEAN=force requires AGENT_BACKEND=claude' >&2
+if [[ "$TURBO_LEAN" =~ ^(force|hard)$ && "$AGENT_BACKEND" != "claude" ]]; then
+  printf '%s\n' "TURBO_LEAN=$TURBO_LEAN requires AGENT_BACKEND=claude" >&2
   exit 2
 fi
 if [[ "$AGENT_BACKEND" == codex && "$CODEX_AUTH" == chatgpt ]]; then
@@ -50,6 +50,7 @@ fi
 case "$TURBO_LEAN" in
   1) RUN_ID="$RUN_ID-turbo" ;;
   force) RUN_ID="$RUN_ID-turbo-force" ;;
+  hard) RUN_ID="$RUN_ID-turbo-hard" ;;
 esac
 TEMPLATE="$PWD/experiment"
 RUN_DIR="$PWD/runs/$RUN_ID"
@@ -160,7 +161,7 @@ docker run --rm \
       lake env lean check/UpdatePositionViewSmoke.lean
       WARM_SMOKE="check/UpdatePositionViewSmoke.lean"
     fi
-    if [[ "${TURBO_LEAN:-0}" == "1" || "${TURBO_LEAN:-0}" == "force" ]]; then
+    if [[ "${TURBO_LEAN:-0}" =~ ^(1|force|hard)$ ]]; then
       export PATH="/opt/turbo-lean/bin:$PATH"
       turbo-lean seed-shards --project-dir . --require-olean
       if [[ -n "$WARM_SMOKE" ]]; then
@@ -190,7 +191,7 @@ PROXY_NAME="midnight-egress-$RUN_ID"
 EGRESS_NET="midnight-egress-$RUN_ID"
 TURBO_LEAN_DOCKER_ARGS=""
 case "$TURBO_LEAN" in
-  1|force) TURBO_LEAN_DOCKER_ARGS="-e TURBO_LEAN=$TURBO_LEAN -e TURBO_LEAN_HOME=/work/.lake/turbo-lean" ;;
+  1|force|hard) TURBO_LEAN_DOCKER_ARGS="-e TURBO_LEAN=$TURBO_LEAN -e TURBO_LEAN_HOME=/work/.lake/turbo-lean" ;;
 esac
 mkdir -p "$AUDIT_DIR"
 
