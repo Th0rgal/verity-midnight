@@ -57,7 +57,7 @@ RUN set -eux; \
 
 WORKDIR /work
 
-ARG TURBO_LEAN_REF=68fd45b109d67e659f8f14493eb580660adabb68
+ARG TURBO_LEAN_REF=8a865294a320e55cb734606430949ced9e0d66fa
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends build-essential; \
